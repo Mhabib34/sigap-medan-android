@@ -1,12 +1,10 @@
-package com.example.smart_city
+package com.example.smart_city.activity
 
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.smart_city.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
