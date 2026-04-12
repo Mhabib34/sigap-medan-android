@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_beranda"
+        android:icon="@android:drawable/ic_menu_today"
+        android:title="BERANDA"/>
+    <item
+        android:id="@+id/nav_misi"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:title="MISI"/>
+    <item
+        android:id="@+id/nav_hadiah"
+        android:icon="@android:drawable/ic_menu_myplaces"
+        android:title="HADIAH"/>
+    <item
+        android:id="@+id/nav_dashboard"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:title="DASHBOARD"/>
+</menu>
