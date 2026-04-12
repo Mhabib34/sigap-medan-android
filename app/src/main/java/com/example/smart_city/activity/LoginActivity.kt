@@ -13,6 +13,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.example.smart_city.MainActivity
 import com.example.smart_city.R
 import com.example.smart_city.helper.DatabaseHelper
 import com.example.smart_city.helper.ToastHelper

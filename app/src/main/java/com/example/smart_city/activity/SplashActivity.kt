@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
+import com.example.smart_city.MainActivity
 import com.example.smart_city.R
 
 @SuppressLint("CustomSplashScreen")
