@@ -15,7 +15,7 @@ class SplashActivity : AppCompatActivity() {
 
         // Pindah ke MainActivity setelah 2.5 detik
         Handler(Looper.getMainLooper()).postDelayed({
-            startActivity(Intent(this, MainActivity::class.java))
+            startActivity(Intent(this, RegisterActivity::class.java))
             finish()
         }, 2500)
     }
