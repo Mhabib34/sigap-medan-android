@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import com.example.smart_city.MainActivity
 import com.example.smart_city.R
 import com.example.smart_city.helper.DatabaseHelper
+import com.example.smart_city.helper.PasswordHelper
 import com.example.smart_city.helper.ToastHelper
 
 class LoginActivity : AppCompatActivity() {
@@ -85,7 +86,8 @@ class LoginActivity : AppCompatActivity() {
         }
 
         // Cek login ke database
-        val berhasil = dbHelper.loginUser(email, password)
+        val hashedPassword = PasswordHelper.hash(password)
+        val berhasil = dbHelper.loginUser(email, hashedPassword)
 
         if (berhasil) {
             // Simpan session user

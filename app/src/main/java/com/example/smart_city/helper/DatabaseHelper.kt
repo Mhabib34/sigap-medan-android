@@ -47,6 +47,18 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COL_MU_MISI_ID = "misi_id"
         const val COL_MU_TANGGAL = "tanggal"
 
+        // Tabel Laporan
+        const val TABLE_LAPORAN = "laporan"
+        const val COL_LAP_ID = "id"
+        const val COL_LAP_USER_ID = "user_id"
+        const val COL_LAP_JUDUL = "judul"
+        const val COL_LAP_CATATAN = "catatan"
+        const val COL_LAP_FOTO = "foto_path"
+        const val COL_LAP_LOKASI = "lokasi"
+        const val COL_LAP_LAT = "latitude"
+        const val COL_LAP_LNG = "longitude"
+        const val COL_LAP_TANGGAL = "tanggal"
+
         // Level berdasarkan poin
         fun getLevelFromPoin(poin: Int): String {
             return when {
@@ -73,6 +85,21 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     }
 
     override fun onCreate(db: SQLiteDatabase) {
+        // Tabel laporan
+        db.execSQL("""
+            CREATE TABLE $TABLE_LAPORAN (
+                $COL_LAP_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_LAP_USER_ID INTEGER NOT NULL,
+                $COL_LAP_JUDUL TEXT NOT NULL,
+                $COL_LAP_CATATAN TEXT,
+                $COL_LAP_FOTO TEXT,
+                $COL_LAP_LOKASI TEXT,
+                $COL_LAP_LAT REAL,
+                $COL_LAP_LNG REAL,
+                $COL_LAP_TANGGAL TEXT NOT NULL
+             )
+        """.trimIndent())
+
         // Tabel User
         db.execSQL("""
             CREATE TABLE $TABLE_USER (
@@ -138,19 +165,16 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     private fun insertDefaultMisi(db: SQLiteDatabase) {
         val misiList = listOf(
-            arrayOf("Lapor Tumpukan Sampah", "Area Jl. Sudirman", "100", "♻️", "#E8541A", "lingkungan"),
-            arrayOf("Foto Kondisi Taman", "Taman Sri Deli", "75", "🌲", "#1A6B5A", "lingkungan"),
-            arrayOf("Review Layanan Publik", "Puskesmas Medan", "80", "📋", "#8B7A00", "layanan"),
-            arrayOf("Naik Transportasi Umum", "Halte Medan", "50", "🚌", "#1A6B5A", "transportasi"),
-            arrayOf("Lapor Jalan Rusak", "Jl. Gatot Subroto", "120", "🚧", "#E8541A", "infrastruktur"),
-            arrayOf("Tanam Pohon", "Taman Kota Medan", "150", "🌱", "#1A6B5A", "lingkungan")
+            arrayOf("Laporkan Jalan Berlubang", "Wilayah Medan Baru", "50", "🚧", "#E8541A", "laporan"),
+            arrayOf("Gunakan Trans Metro", "Halte Trans Metro Medan", "30", "🚌", "#1A6B5A", "transportasi"),
+            arrayOf("Setor Sampah Plastik", "Bank Sampah Terdekat", "100", "♻️", "#2D8B70", "lingkungan")
         )
         misiList.forEach {
             db.execSQL("""
-                INSERT INTO $TABLE_MISI 
-                ($COL_MISI_JUDUL, $COL_MISI_LOKASI, $COL_MISI_POIN, $COL_MISI_ICON, $COL_MISI_WARNA, $COL_MISI_KATEGORI)
-                VALUES ('${it[0]}', '${it[1]}', ${it[2]}, '${it[3]}', '${it[4]}', '${it[5]}')
-            """.trimIndent())
+            INSERT INTO $TABLE_MISI
+            ($COL_MISI_JUDUL, $COL_MISI_LOKASI, $COL_MISI_POIN, $COL_MISI_ICON, $COL_MISI_WARNA, $COL_MISI_KATEGORI)
+            VALUES ('${it[0]}', '${it[1]}', ${it[2]}, '${it[3]}', '${it[4]}', '${it[5]}')
+        """.trimIndent())
         }
     }
 
@@ -274,42 +298,13 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         return true
     }
 
-    fun getPoinUser(userId: Int): Int {
-        val db = readableDatabase
-        val cursor = db.query(TABLE_USER, arrayOf(COL_POIN),
-            "$COL_ID = ?", arrayOf(userId.toString()), null, null, null)
-        val poin = if (cursor.moveToFirst())
-            cursor.getInt(cursor.getColumnIndexOrThrow(COL_POIN)) else 0
-        cursor.close()
-        db.close()
-        return poin
-    }
-
-    fun getRiwayatPoin(userId: Int): List<Map<String, String>> {
-        val db = readableDatabase
-        val cursor = db.query(TABLE_POIN, null,
-            "$COL_POIN_USER_ID = ?", arrayOf(userId.toString()),
-            null, null, "$COL_POIN_TANGGAL DESC")
-        val list = mutableListOf<Map<String, String>>()
-        while (cursor.moveToNext()) {
-            list.add(mapOf(
-                "jumlah"      to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN_JUMLAH)),
-                "keterangan"  to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN_KETERANGAN)),
-                "kategori"    to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN_KATEGORI)),
-                "tanggal"     to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN_TANGGAL))
-            ))
-        }
-        cursor.close()
-        db.close()
-        return list
-    }
-
     // ==================== MISI ====================
 
-    fun getMisiHariIni(): List<Map<String, String>> {
+    fun getMisiHariIni(filter: String = "semua"): List<Map<String, String>> {
         val db = readableDatabase
-        val cursor = db.query(TABLE_MISI, null, null, null, null, null,
-            "RANDOM()", "3")
+        val where = if (filter == "semua") null else "$COL_MISI_KATEGORI = ?"
+        val args = if (filter == "semua") null else arrayOf(filter)
+        val cursor = db.query(TABLE_MISI, null, where, args, null, null, null)
         val list = mutableListOf<Map<String, String>>()
         while (cursor.moveToNext()) {
             list.add(mapOf(
@@ -387,5 +382,27 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             mapOf("nama" to "Doni Pratama",  "poin" to "2710", "level" to "LOCAL HERO")
         )
         return dummy.take(limit)
+    }
+
+    fun simpanLaporan(
+        userId: Int, judul: String, catatan: String,
+        fotoPath: String, lokasi: String, lat: Double, lng: Double
+    ): Boolean {
+        val db = writableDatabase
+        val tanggal = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+            java.util.Locale.getDefault()).format(java.util.Date())
+        val values = ContentValues().apply {
+            put(COL_LAP_USER_ID, userId)
+            put(COL_LAP_JUDUL, judul)
+            put(COL_LAP_CATATAN, catatan)
+            put(COL_LAP_FOTO, fotoPath)
+            put(COL_LAP_LOKASI, lokasi)
+            put(COL_LAP_LAT, lat)
+            put(COL_LAP_LNG, lng)
+            put(COL_LAP_TANGGAL, tanggal)
+        }
+        val result = db.insert(TABLE_LAPORAN, null, values)
+        db.close()
+        return result != -1L
     }
 }

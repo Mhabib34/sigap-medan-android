@@ -78,13 +78,6 @@
                         android:textStyle="bold"
                         android:textColor="#1A1A1A"/>
                 </LinearLayout>
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/bell_school"
-                    app:tint="#1A1A1A"/>
-
             </LinearLayout>
 
             <!-- Card Status -->
