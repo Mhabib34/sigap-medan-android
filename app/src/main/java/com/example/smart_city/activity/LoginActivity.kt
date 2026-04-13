@@ -93,6 +93,7 @@ class LoginActivity : AppCompatActivity() {
             val sharedPref = getSharedPreferences("smartcity_session", MODE_PRIVATE)
             sharedPref.edit().apply {
                 putBoolean("is_login", true)
+                putInt("user_id", user?.get("id")?.toInt() ?: 0) // tambah ini
                 putString("nama", user?.get("nama"))
                 putString("email", user?.get("email"))
                 putString("kota", user?.get("kota"))
