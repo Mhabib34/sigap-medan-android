@@ -2,28 +2,45 @@ package com.example.smart_city.activity
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.util.Patterns
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.smart_city.R
 import com.example.smart_city.helper.DatabaseHelper
+import com.example.smart_city.helper.PasswordHelper
 import com.example.smart_city.helper.ToastHelper
+import java.security.MessageDigest
 
 class RegisterActivity : AppCompatActivity() {
 
     private lateinit var dbHelper: DatabaseHelper
+    private var isPasswordVisible = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
         dbHelper = DatabaseHelper(this)
+
+        val etPassword = findViewById<EditText>(R.id.etPassword)
+        val ivShowPassword = findViewById<ImageView>(R.id.ivShowPassword)
+        ivShowPassword.setOnClickListener {
+            isPasswordVisible = !isPasswordVisible
+            if (isPasswordVisible) {
+                etPassword.inputType = InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            } else {
+                etPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            }
+            etPassword.setSelection(etPassword.text.length)
+        }
 
         // Warnai kata "Masuk" jadi oranye
         val tvMasuk = findViewById<TextView>(R.id.tvMasuk)
@@ -83,7 +100,8 @@ class RegisterActivity : AppCompatActivity() {
         }
 
         // Simpan ke database
-        val berhasil = dbHelper.registerUser(nama, email, password, kota)
+        val hashedPassword = PasswordHelper.hash(password)
+        val berhasil = dbHelper.registerUser(nama, email, hashedPassword, kota)
 
         if (berhasil) {
             ToastHelper.showSuccess(this, "Registrasi berhasil!")

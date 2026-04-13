@@ -1,6 +1,7 @@
 package com.example.smart_city.fragment
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.*
@@ -9,6 +10,8 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.smart_city.R
+import com.example.smart_city.activity.LaporanJalanActivity
+import com.example.smart_city.activity.ScanQrActivity
 import com.example.smart_city.helper.DatabaseHelper
 import com.example.smart_city.helper.ToastHelper
 
@@ -73,7 +76,7 @@ class BerandaFragment : Fragment() {
 
             swipeRefresh.isRefreshing = false
 
-        }, 1500)
+        }, 500)
     }
 
     private fun loadUserData(view: View) {
@@ -106,6 +109,7 @@ class BerandaFragment : Fragment() {
         misiList.forEach { misi ->
             val misiId = misi["id"]?.toInt() ?: return@forEach
             val sudahSelesai = db.isMisiSelesai(userId, misiId)
+            val kategori = misi["kategori"] ?: ""
 
             val itemView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.item_misi, container, false)
@@ -118,7 +122,6 @@ class BerandaFragment : Fragment() {
             val btnSelesaikan = itemView.findViewById<Button>(R.id.btnSelesaikan)
             val warna = misi["warna"] ?: "#E8541A"
 
-            // Set warna strip kiri
             itemView.findViewById<View>(R.id.viewStrip)
                 .setBackgroundColor(Color.parseColor(warna))
 
@@ -133,13 +136,30 @@ class BerandaFragment : Fragment() {
                 btnSelesaikan.text = "Selesaikan"
                 btnSelesaikan.setBackgroundColor(Color.parseColor(warna))
                 btnSelesaikan.setOnClickListener {
-                    val poinDapat = db.selesaikanMisi(userId, misiId)
-                    if (poinDapat > 0) {
-                        ToastHelper.showSuccess(requireContext(),
-                            "🎉 Misi selesai! +$poinDapat poin")
-                        loadUserData(view)
-                        loadMisi(view)
-                        loadLeaderboard(view)
+                    when (kategori) {
+                        "laporan" -> {
+                            val intent = Intent(requireContext(), LaporanJalanActivity::class.java)
+                            intent.putExtra("misi_id", misiId)
+                            intent.putExtra("poin", misi["poin"]?.toInt() ?: 50)
+                            startActivity(intent)
+                        }
+                        "transportasi", "lingkungan" -> {
+                            val intent = Intent(requireContext(), ScanQrActivity::class.java)
+                            intent.putExtra("misi_id", misiId)
+                            intent.putExtra("poin", misi["poin"]?.toInt() ?: 30)
+                            intent.putExtra("judul", misi["judul"])
+                            startActivity(intent)
+                        }
+                        else -> {
+                            // Fallback kalau kategori tidak dikenali
+                            val poinDapat = db.selesaikanMisi(userId, misiId)
+                            if (poinDapat > 0) {
+                                ToastHelper.showSuccess(requireContext(), "🎉 Misi selesai! +$poinDapat poin")
+                                loadUserData(view)
+                                loadMisi(view)
+                                loadLeaderboard(view)
+                            }
+                        }
                     }
                 }
             }

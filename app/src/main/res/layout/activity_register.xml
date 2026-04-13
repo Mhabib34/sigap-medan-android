@@ -178,6 +178,7 @@
                     android:letterSpacing="0.1"/>
 
                 <!-- Field Password -->
+                <!-- Field Password -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -205,8 +206,9 @@
 
                         <EditText
                             android:id="@+id/etPassword"
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="48dp"
+                            android:layout_weight="1"
                             android:background="@null"
                             android:paddingStart="10dp"
                             android:hint="Min. 8 karakter"
@@ -214,6 +216,14 @@
                             android:textColor="#1A1A1A"
                             android:textColorHint="#BBBBBB"
                             android:inputType="textPassword"/>
+
+                        <!-- Toggle show/hide password -->
+                        <ImageView
+                            android:id="@+id/ivShowPassword"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@android:drawable/ic_menu_view"
+                            app:tint="#AAAAAA"/>
 
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
@@ -224,7 +234,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
                     android:layout_marginTop="24dp"
-                    android:text="Daftar Sekarang 🚀"
+                    android:text="Daftar Sekarang"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#FFFFFF"
