@@ -9,7 +9,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     companion object {
         const val DATABASE_NAME = "smartcity.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
 
         // Tabel User
         const val TABLE_USER = "users"
@@ -18,27 +18,144 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COL_EMAIL = "email"
         const val COL_PASSWORD = "password"
         const val COL_KOTA = "kota"
+        const val COL_POIN = "poin"
+        const val COL_LEVEL = "level"
+
+        // Tabel Riwayat Poin
+        const val TABLE_POIN = "riwayat_poin"
+        const val COL_POIN_ID = "id"
+        const val COL_POIN_USER_ID = "user_id"
+        const val COL_POIN_JUMLAH = "jumlah"
+        const val COL_POIN_KETERANGAN = "keterangan"
+        const val COL_POIN_KATEGORI = "kategori"
+        const val COL_POIN_TANGGAL = "tanggal"
+
+        // Tabel Misi
+        const val TABLE_MISI = "misi"
+        const val COL_MISI_ID = "id"
+        const val COL_MISI_JUDUL = "judul"
+        const val COL_MISI_LOKASI = "lokasi"
+        const val COL_MISI_POIN = "poin"
+        const val COL_MISI_ICON = "icon"
+        const val COL_MISI_WARNA = "warna"
+        const val COL_MISI_KATEGORI = "kategori"
+
+        // Tabel Misi User (misi yang sudah diselesaikan)
+        const val TABLE_MISI_USER = "misi_user"
+        const val COL_MU_ID = "id"
+        const val COL_MU_USER_ID = "user_id"
+        const val COL_MU_MISI_ID = "misi_id"
+        const val COL_MU_TANGGAL = "tanggal"
+
+        // Level berdasarkan poin
+        fun getLevelFromPoin(poin: Int): String {
+            return when {
+                poin >= 5000 -> "City Hero"
+                poin >= 3000 -> "Elite Contributor"
+                poin >= 2000 -> "City Guardian"
+                poin >= 1000 -> "Warga Aktif"
+                poin >= 500  -> "Local Hero"
+                else         -> "Warga Baru"
+            }
+        }
+
+        // Target poin untuk level berikutnya
+        fun getTargetPoin(poin: Int): Int {
+            return when {
+                poin >= 5000 -> 10000
+                poin >= 3000 -> 5000
+                poin >= 2000 -> 3000
+                poin >= 1000 -> 2000
+                poin >= 500  -> 1000
+                else         -> 500
+            }
+        }
     }
 
     override fun onCreate(db: SQLiteDatabase) {
-        val createTable = """
+        // Tabel User
+        db.execSQL("""
             CREATE TABLE $TABLE_USER (
                 $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
                 $COL_NAMA TEXT NOT NULL,
                 $COL_EMAIL TEXT UNIQUE NOT NULL,
                 $COL_PASSWORD TEXT NOT NULL,
-                $COL_KOTA TEXT NOT NULL
+                $COL_KOTA TEXT NOT NULL,
+                $COL_POIN INTEGER DEFAULT 50,
+                $COL_LEVEL TEXT DEFAULT 'Warga Baru'
             )
-        """.trimIndent()
-        db.execSQL(createTable)
+        """.trimIndent())
+
+        // Tabel Riwayat Poin
+        db.execSQL("""
+            CREATE TABLE $TABLE_POIN (
+                $COL_POIN_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_POIN_USER_ID INTEGER NOT NULL,
+                $COL_POIN_JUMLAH INTEGER NOT NULL,
+                $COL_POIN_KETERANGAN TEXT NOT NULL,
+                $COL_POIN_KATEGORI TEXT NOT NULL,
+                $COL_POIN_TANGGAL TEXT NOT NULL,
+                FOREIGN KEY($COL_POIN_USER_ID) REFERENCES $TABLE_USER($COL_ID)
+            )
+        """.trimIndent())
+
+        // Tabel Misi
+        db.execSQL("""
+            CREATE TABLE $TABLE_MISI (
+                $COL_MISI_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_MISI_JUDUL TEXT NOT NULL,
+                $COL_MISI_LOKASI TEXT NOT NULL,
+                $COL_MISI_POIN INTEGER NOT NULL,
+                $COL_MISI_ICON TEXT NOT NULL,
+                $COL_MISI_WARNA TEXT NOT NULL,
+                $COL_MISI_KATEGORI TEXT NOT NULL
+            )
+        """.trimIndent())
+
+        // Tabel Misi User
+        db.execSQL("""
+            CREATE TABLE $TABLE_MISI_USER (
+                $COL_MU_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_MU_USER_ID INTEGER NOT NULL,
+                $COL_MU_MISI_ID INTEGER NOT NULL,
+                $COL_MU_TANGGAL TEXT NOT NULL,
+                FOREIGN KEY($COL_MU_USER_ID) REFERENCES $TABLE_USER($COL_ID),
+                FOREIGN KEY($COL_MU_MISI_ID) REFERENCES $TABLE_MISI($COL_MISI_ID)
+            )
+        """.trimIndent())
+
+        // Insert misi default
+        insertDefaultMisi(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_MISI_USER")
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_POIN")
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_MISI")
         db.execSQL("DROP TABLE IF EXISTS $TABLE_USER")
         onCreate(db)
     }
 
-    // Register user baru
+    private fun insertDefaultMisi(db: SQLiteDatabase) {
+        val misiList = listOf(
+            arrayOf("Lapor Tumpukan Sampah", "Area Jl. Sudirman", "100", "♻️", "#E8541A", "lingkungan"),
+            arrayOf("Foto Kondisi Taman", "Taman Sri Deli", "75", "🌲", "#1A6B5A", "lingkungan"),
+            arrayOf("Review Layanan Publik", "Puskesmas Medan", "80", "📋", "#8B7A00", "layanan"),
+            arrayOf("Naik Transportasi Umum", "Halte Medan", "50", "🚌", "#1A6B5A", "transportasi"),
+            arrayOf("Lapor Jalan Rusak", "Jl. Gatot Subroto", "120", "🚧", "#E8541A", "infrastruktur"),
+            arrayOf("Tanam Pohon", "Taman Kota Medan", "150", "🌱", "#1A6B5A", "lingkungan")
+        )
+        misiList.forEach {
+            db.execSQL("""
+                INSERT INTO $TABLE_MISI 
+                ($COL_MISI_JUDUL, $COL_MISI_LOKASI, $COL_MISI_POIN, $COL_MISI_ICON, $COL_MISI_WARNA, $COL_MISI_KATEGORI)
+                VALUES ('${it[0]}', '${it[1]}', ${it[2]}, '${it[3]}', '${it[4]}', '${it[5]}')
+            """.trimIndent())
+        }
+    }
+
+    // ==================== USER ====================
+
     fun registerUser(nama: String, email: String, password: String, kota: String): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -46,60 +163,47 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             put(COL_EMAIL, email)
             put(COL_PASSWORD, password)
             put(COL_KOTA, kota)
+            put(COL_POIN, 50) // bonus poin pertama
+            put(COL_LEVEL, "Warga Baru")
         }
         val result = db.insert(TABLE_USER, null, values)
         db.close()
         return result != -1L
     }
 
-    // Cek email sudah terdaftar belum
     fun isEmailExist(email: String): Boolean {
         val db = readableDatabase
-        val cursor = db.query(
-            TABLE_USER,
-            arrayOf(COL_ID),
-            "$COL_EMAIL = ?",
-            arrayOf(email),
-            null, null, null
-        )
+        val cursor = db.query(TABLE_USER, arrayOf(COL_ID),
+            "$COL_EMAIL = ?", arrayOf(email), null, null, null)
         val exists = cursor.count > 0
         cursor.close()
         db.close()
         return exists
     }
 
-    // Login user
     fun loginUser(email: String, password: String): Boolean {
         val db = readableDatabase
-        val cursor = db.query(
-            TABLE_USER,
-            arrayOf(COL_ID),
+        val cursor = db.query(TABLE_USER, arrayOf(COL_ID),
             "$COL_EMAIL = ? AND $COL_PASSWORD = ?",
-            arrayOf(email, password),
-            null, null, null
-        )
+            arrayOf(email, password), null, null, null)
         val valid = cursor.count > 0
         cursor.close()
         db.close()
         return valid
     }
 
-    // Ambil data user by email
     fun getUserByEmail(email: String): Map<String, String>? {
         val db = readableDatabase
-        val cursor = db.query(
-            TABLE_USER,
-            null,
-            "$COL_EMAIL = ?",
-            arrayOf(email),
-            null, null, null
-        )
+        val cursor = db.query(TABLE_USER, null,
+            "$COL_EMAIL = ?", arrayOf(email), null, null, null)
         return if (cursor.moveToFirst()) {
             val data = mapOf(
-                "id" to cursor.getString(cursor.getColumnIndexOrThrow(COL_ID)),
-                "nama" to cursor.getString(cursor.getColumnIndexOrThrow(COL_NAMA)),
-                "email" to cursor.getString(cursor.getColumnIndexOrThrow(COL_EMAIL)),
-                "kota" to cursor.getString(cursor.getColumnIndexOrThrow(COL_KOTA))
+                "id"     to cursor.getString(cursor.getColumnIndexOrThrow(COL_ID)),
+                "nama"   to cursor.getString(cursor.getColumnIndexOrThrow(COL_NAMA)),
+                "email"  to cursor.getString(cursor.getColumnIndexOrThrow(COL_EMAIL)),
+                "kota"   to cursor.getString(cursor.getColumnIndexOrThrow(COL_KOTA)),
+                "poin"   to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN)),
+                "level"  to cursor.getString(cursor.getColumnIndexOrThrow(COL_LEVEL))
             )
             cursor.close()
             db.close()
@@ -109,5 +213,179 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             db.close()
             null
         }
+    }
+
+    fun getUserById(userId: Int): Map<String, String>? {
+        val db = readableDatabase
+        val cursor = db.query(TABLE_USER, null,
+            "$COL_ID = ?", arrayOf(userId.toString()), null, null, null)
+        return if (cursor.moveToFirst()) {
+            val data = mapOf(
+                "id"    to cursor.getString(cursor.getColumnIndexOrThrow(COL_ID)),
+                "nama"  to cursor.getString(cursor.getColumnIndexOrThrow(COL_NAMA)),
+                "email" to cursor.getString(cursor.getColumnIndexOrThrow(COL_EMAIL)),
+                "kota"  to cursor.getString(cursor.getColumnIndexOrThrow(COL_KOTA)),
+                "poin"  to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN)),
+                "level" to cursor.getString(cursor.getColumnIndexOrThrow(COL_LEVEL))
+            )
+            cursor.close()
+            db.close()
+            data
+        } else {
+            cursor.close()
+            db.close()
+            null
+        }
+    }
+
+    // ==================== POIN ====================
+
+    fun tambahPoin(userId: Int, jumlah: Int, keterangan: String, kategori: String): Boolean {
+        val db = writableDatabase
+
+        // Tambah ke riwayat
+        val tanggal = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+            java.util.Locale.getDefault()).format(java.util.Date())
+        val riwayat = ContentValues().apply {
+            put(COL_POIN_USER_ID, userId)
+            put(COL_POIN_JUMLAH, jumlah)
+            put(COL_POIN_KETERANGAN, keterangan)
+            put(COL_POIN_KATEGORI, kategori)
+            put(COL_POIN_TANGGAL, tanggal)
+        }
+        db.insert(TABLE_POIN, null, riwayat)
+
+        // Update total poin user
+        db.execSQL("""
+            UPDATE $TABLE_USER 
+            SET $COL_POIN = $COL_POIN + $jumlah,
+                $COL_LEVEL = CASE
+                    WHEN $COL_POIN + $jumlah >= 5000 THEN 'City Hero'
+                    WHEN $COL_POIN + $jumlah >= 3000 THEN 'Elite Contributor'
+                    WHEN $COL_POIN + $jumlah >= 2000 THEN 'City Guardian'
+                    WHEN $COL_POIN + $jumlah >= 1000 THEN 'Warga Aktif'
+                    WHEN $COL_POIN + $jumlah >= 500  THEN 'Local Hero'
+                    ELSE 'Warga Baru'
+                END
+            WHERE $COL_ID = $userId
+        """.trimIndent())
+
+        db.close()
+        return true
+    }
+
+    fun getPoinUser(userId: Int): Int {
+        val db = readableDatabase
+        val cursor = db.query(TABLE_USER, arrayOf(COL_POIN),
+            "$COL_ID = ?", arrayOf(userId.toString()), null, null, null)
+        val poin = if (cursor.moveToFirst())
+            cursor.getInt(cursor.getColumnIndexOrThrow(COL_POIN)) else 0
+        cursor.close()
+        db.close()
+        return poin
+    }
+
+    fun getRiwayatPoin(userId: Int): List<Map<String, String>> {
+        val db = readableDatabase
+        val cursor = db.query(TABLE_POIN, null,
+            "$COL_POIN_USER_ID = ?", arrayOf(userId.toString()),
+            null, null, "$COL_POIN_TANGGAL DESC")
+        val list = mutableListOf<Map<String, String>>()
+        while (cursor.moveToNext()) {
+            list.add(mapOf(
+                "jumlah"      to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN_JUMLAH)),
+                "keterangan"  to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN_KETERANGAN)),
+                "kategori"    to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN_KATEGORI)),
+                "tanggal"     to cursor.getString(cursor.getColumnIndexOrThrow(COL_POIN_TANGGAL))
+            ))
+        }
+        cursor.close()
+        db.close()
+        return list
+    }
+
+    // ==================== MISI ====================
+
+    fun getMisiHariIni(): List<Map<String, String>> {
+        val db = readableDatabase
+        val cursor = db.query(TABLE_MISI, null, null, null, null, null,
+            "RANDOM()", "3")
+        val list = mutableListOf<Map<String, String>>()
+        while (cursor.moveToNext()) {
+            list.add(mapOf(
+                "id"       to cursor.getString(cursor.getColumnIndexOrThrow(COL_MISI_ID)),
+                "judul"    to cursor.getString(cursor.getColumnIndexOrThrow(COL_MISI_JUDUL)),
+                "lokasi"   to cursor.getString(cursor.getColumnIndexOrThrow(COL_MISI_LOKASI)),
+                "poin"     to cursor.getString(cursor.getColumnIndexOrThrow(COL_MISI_POIN)),
+                "icon"     to cursor.getString(cursor.getColumnIndexOrThrow(COL_MISI_ICON)),
+                "warna"    to cursor.getString(cursor.getColumnIndexOrThrow(COL_MISI_WARNA)),
+                "kategori" to cursor.getString(cursor.getColumnIndexOrThrow(COL_MISI_KATEGORI))
+            ))
+        }
+        cursor.close()
+        db.close()
+        return list
+    }
+
+    fun isMisiSelesai(userId: Int, misiId: Int): Boolean {
+        val db = readableDatabase
+        // Cek apakah sudah diselesaikan hari ini
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd",
+            java.util.Locale.getDefault()).format(java.util.Date())
+        val cursor = db.query(TABLE_MISI_USER, arrayOf(COL_MU_ID),
+            "$COL_MU_USER_ID = ? AND $COL_MU_MISI_ID = ? AND $COL_MU_TANGGAL LIKE ?",
+            arrayOf(userId.toString(), misiId.toString(), "$today%"),
+            null, null, null)
+        val selesai = cursor.count > 0
+        cursor.close()
+        db.close()
+        return selesai
+    }
+
+    fun selesaikanMisi(userId: Int, misiId: Int): Int {
+        // Cek sudah selesai belum
+        if (isMisiSelesai(userId, misiId)) return -1
+
+        val db = writableDatabase
+        val tanggal = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+            java.util.Locale.getDefault()).format(java.util.Date())
+
+        // Simpan misi selesai
+        val values = ContentValues().apply {
+            put(COL_MU_USER_ID, userId)
+            put(COL_MU_MISI_ID, misiId)
+            put(COL_MU_TANGGAL, tanggal)
+        }
+        db.insert(TABLE_MISI_USER, null, values)
+        db.close()
+
+        // Ambil poin misi
+        val misiDb = readableDatabase
+        val cursor = misiDb.query(TABLE_MISI, arrayOf(COL_MISI_POIN, COL_MISI_JUDUL),
+            "$COL_MISI_ID = ?", arrayOf(misiId.toString()), null, null, null)
+        var poin = 0
+        var judul = ""
+        if (cursor.moveToFirst()) {
+            poin = cursor.getInt(cursor.getColumnIndexOrThrow(COL_MISI_POIN))
+            judul = cursor.getString(cursor.getColumnIndexOrThrow(COL_MISI_JUDUL))
+        }
+        cursor.close()
+        misiDb.close()
+
+        // Tambah poin ke user
+        if (poin > 0) tambahPoin(userId, poin, "Misi: $judul", "misi")
+
+        return poin
+    }
+
+    // ==================== LEADERBOARD ====================
+
+    fun getTopWarga(limit: Int = 3): List<Map<String, String>> {
+        val dummy = listOf(
+            mapOf("nama" to "Andi Wijaya",   "poin" to "3450", "level" to "ELITE CONTRIBUTOR"),
+            mapOf("nama" to "Siti Aminah",   "poin" to "2980", "level" to "CITY GUARDIAN"),
+            mapOf("nama" to "Doni Pratama",  "poin" to "2710", "level" to "LOCAL HERO")
+        )
+        return dummy.take(limit)
     }
 }

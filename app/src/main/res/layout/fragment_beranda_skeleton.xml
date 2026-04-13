@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="25dp"
+        android:padding="16dp">
+
+        <!-- Skeleton Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Avatar skeleton -->
+            <View
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_skeleton_circle"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp">
+
+                <View
+                    android:layout_width="60dp"
+                    android:layout_height="10dp"
+                    android:layout_marginBottom="6dp"
+                    android:background="@drawable/bg_skeleton"/>
+
+                <View
+                    android:layout_width="120dp"
+                    android:layout_height="14dp"
+                    android:background="@drawable/bg_skeleton"/>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="@drawable/bg_skeleton_circle"/>
+
+        </LinearLayout>
+
+        <!-- Skeleton Card Status -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="130dp"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardBackgroundColor="#CCCCCC"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <View
+                    android:layout_width="140dp"
+                    android:layout_height="10dp"
+                    android:background="@drawable/bg_skeleton_dark"/>
+
+                <View
+                    android:layout_width="180dp"
+                    android:layout_height="24dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_skeleton_dark"/>
+
+                <View
+                    android:layout_width="100dp"
+                    android:layout_height="20dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_skeleton_dark"/>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_skeleton_dark"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Skeleton Koleksi Badge -->
+        <View
+            android:layout_width="120dp"
+            android:layout_height="16dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_skeleton"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp">
+
+            <!-- 4 badge skeleton -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <View
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_skeleton_circle"/>
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_skeleton"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <View
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_skeleton_circle"/>
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_skeleton"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <View
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_skeleton_circle"/>
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_skeleton"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <View
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_skeleton_circle"/>
+                <View
+                    android:layout_width="50dp"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_skeleton"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Skeleton Misi Hari Ini -->
+        <View
+            android:layout_width="100dp"
+            android:layout_height="16dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_skeleton"/>
+
+        <!-- Skeleton Misi Item 1 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_marginTop="10dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="#FFFFFF">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_skeleton"/>
+                <View
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="12dp"
+                    android:background="@drawable/bg_skeleton_circle"/>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+                    <View
+                        android:layout_width="140dp"
+                        android:layout_height="12dp"
+                        android:background="@drawable/bg_skeleton"/>
+                    <View
+                        android:layout_width="90dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/bg_skeleton"/>
+                </LinearLayout>
+                <View
+                    android:layout_width="80dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/bg_skeleton"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Skeleton Misi Item 2 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_marginTop="10dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="#FFFFFF">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_skeleton"/>
+                <View
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="12dp"
+                    android:background="@drawable/bg_skeleton_circle"/>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+                    <View
+                        android:layout_width="160dp"
+                        android:layout_height="12dp"
+                        android:background="@drawable/bg_skeleton"/>
+                    <View
+                        android:layout_width="100dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/bg_skeleton"/>
+                </LinearLayout>
+                <View
+                    android:layout_width="80dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/bg_skeleton"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Skeleton Misi Item 3 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_marginTop="10dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="#FFFFFF">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_skeleton"/>
+                <View
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="12dp"
+                    android:background="@drawable/bg_skeleton_circle"/>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+                    <View
+                        android:layout_width="120dp"
+                        android:layout_height="12dp"
+                        android:background="@drawable/bg_skeleton"/>
+                    <View
+                        android:layout_width="80dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/bg_skeleton"/>
+                </LinearLayout>
+                <View
+                    android:layout_width="80dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/bg_skeleton"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Skeleton Leaderboard -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="#FFFFFF">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <View
+                    android:layout_width="200dp"
+                    android:layout_height="16dp"
+                    android:background="@drawable/bg_skeleton"/>
+
+                <!-- Rank 1 skeleton -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="16dp">
+                    <View
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/bg_skeleton_circle"/>
+                    <View
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_skeleton_circle"/>
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="10dp">
+                        <View
+                            android:layout_width="100dp"
+                            android:layout_height="12dp"
+                            android:background="@drawable/bg_skeleton"/>
+                        <View
+                            android:layout_width="70dp"
+                            android:layout_height="10dp"
+                            android:layout_marginTop="5dp"
+                            android:background="@drawable/bg_skeleton"/>
+                    </LinearLayout>
+                    <View
+                        android:layout_width="60dp"
+                        android:layout_height="14dp"
+                        android:background="@drawable/bg_skeleton"/>
+                </LinearLayout>
+
+                <!-- Rank 2 skeleton -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="12dp">
+                    <View
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/bg_skeleton_circle"/>
+                    <View
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_skeleton_circle"/>
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="10dp">
+                        <View
+                            android:layout_width="110dp"
+                            android:layout_height="12dp"
+                            android:background="@drawable/bg_skeleton"/>
+                        <View
+                            android:layout_width="80dp"
+                            android:layout_height="10dp"
+                            android:layout_marginTop="5dp"
+                            android:background="@drawable/bg_skeleton"/>
+                    </LinearLayout>
+                    <View
+                        android:layout_width="60dp"
+                        android:layout_height="14dp"
+                        android:background="@drawable/bg_skeleton"/>
+                </LinearLayout>
+
+                <!-- Rank 3 skeleton -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="12dp">
+                    <View
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/bg_skeleton_circle"/>
+                    <View
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_skeleton_circle"/>
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="10dp">
+                        <View
+                            android:layout_width="90dp"
+                            android:layout_height="12dp"
+                            android:background="@drawable/bg_skeleton"/>
+                        <View
+                            android:layout_width="65dp"
+                            android:layout_height="10dp"
+                            android:layout_marginTop="5dp"
+                            android:background="@drawable/bg_skeleton"/>
+                    </LinearLayout>
+                    <View
+                        android:layout_width="60dp"
+                        android:layout_height="14dp"
+                        android:background="@drawable/bg_skeleton"/>
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</ScrollView>
