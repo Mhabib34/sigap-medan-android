@@ -154,6 +154,9 @@ class BerandaFragment : Fragment() {
                             val intent = Intent(requireContext(), LaporanJalanActivity::class.java)
                             intent.putExtra("misi_id", misiId)
                             intent.putExtra("poin", misi["poin"]?.toInt() ?: 50)
+                            intent.putExtra("judul", misi["judul"])
+                            intent.putExtra("lokasi", misi["lokasi"])
+                            intent.putExtra("kategori", misi["kategori"])
                             startActivity(intent)
                         }
                         "transportasi", "lingkungan" -> {

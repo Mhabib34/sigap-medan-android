@@ -90,20 +90,26 @@ class MisiFragment : Fragment() {
         val tabSemua = view.findViewById<TextView>(R.id.tabSemua)
         val tabLingkungan = view.findViewById<TextView>(R.id.tabLingkungan)
         val tabTransportasi = view.findViewById<TextView>(R.id.tabTransportasi)
+        val tabLaporan = view.findViewById<TextView>(R.id.tabLaporan)
 
         tabSemua.setOnClickListener {
             filterAktif = "semua"
-            setActiveTab(view, tabSemua, listOf(tabLingkungan, tabTransportasi))
+            setActiveTab(view, tabSemua, listOf(tabLingkungan, tabTransportasi,tabLaporan))
             loadMisi(view, filterAktif)
         }
         tabLingkungan.setOnClickListener {
             filterAktif = "lingkungan"
-            setActiveTab(view, tabLingkungan, listOf(tabSemua, tabTransportasi))
+            setActiveTab(view, tabLingkungan, listOf(tabSemua, tabTransportasi,tabLaporan))
             loadMisi(view, filterAktif)
         }
         tabTransportasi.setOnClickListener {
             filterAktif = "transportasi"
-            setActiveTab(view, tabTransportasi, listOf(tabSemua, tabLingkungan))
+            setActiveTab(view, tabTransportasi, listOf(tabSemua, tabLingkungan,tabLaporan))
+            loadMisi(view, filterAktif)
+        }
+        tabLaporan.setOnClickListener {
+            filterAktif = "laporan"
+            setActiveTab(view, tabLaporan, listOf(tabSemua,tabLingkungan,tabTransportasi))
             loadMisi(view, filterAktif)
         }
     }
@@ -183,6 +189,9 @@ class MisiFragment : Fragment() {
                             startActivity(Intent(safeCtx, LaporanJalanActivity::class.java).apply {
                                 putExtra("misi_id", misiId)
                                 putExtra("poin", misi["poin"]?.toInt() ?: 50)
+                                putExtra("judul", misi["judul"])
+                                putExtra("lokasi", misi["lokasi"])
+                                putExtra("kategori", misi["kategori"])
                             })
                         }
                         "transportasi", "lingkungan" -> {

@@ -35,6 +35,10 @@ class LaporanJalanActivity : AppCompatActivity() {
     private var poin: Int = 50
     private var userId: Int = 0
 
+    private var judul: String = ""
+    private var lokasi: String = ""
+    private var kategori: String = ""
+
     companion object {
         const val REQ_KAMERA = 100
         const val REQ_GALERI = 101
@@ -46,13 +50,37 @@ class LaporanJalanActivity : AppCompatActivity() {
         supportActionBar?.hide()
         setContentView(R.layout.activity_laporan_jalan)
 
+        // ✅ Baca intent DULU sebelum dipakai
         db = DatabaseHelper(this)
         fusedLocation = LocationServices.getFusedLocationProviderClient(this)
 
-        misiId = intent.getIntExtra("misi_id", 0)
-        poin = intent.getIntExtra("poin", 50)
-        userId = getSharedPreferences("smartcity_session", MODE_PRIVATE)
+        misiId   = intent.getIntExtra("misi_id", 0)
+        poin     = intent.getIntExtra("poin", 50)
+        judul    = intent.getStringExtra("judul")    ?: "Laporkan Jalan Berlubang"
+        lokasi   = intent.getStringExtra("lokasi")   ?: "Wilayah Medan"
+        kategori = intent.getStringExtra("kategori") ?: "laporan"
+        userId   = getSharedPreferences("smartcity_session", MODE_PRIVATE)
             .getInt("user_id", 0)
+
+        // ✅ Baru update UI setelah data tersedia
+        findViewById<TextView>(R.id.tvJudulLaporan).text = judul
+
+        // ← tambah ini
+        findViewById<TextView>(R.id.tvFotoLabel).text = "Ambil Foto $judul"
+        findViewById<TextView>(R.id.tvFotoSubLabel).text = when (kategori) {
+            "laporan"    -> "Pastikan objek terlihat jelas"
+            "lingkungan" -> "Pastikan kondisi lingkungan terlihat jelas"
+            "sosial"     -> "Pastikan situasi terlihat jelas"
+            else         -> "Pastikan foto terlihat jelas"
+        }
+
+        val etCatatan = findViewById<EditText>(R.id.etCatatan)
+        etCatatan.hint = when (kategori) {
+            "laporan"    -> "Berikan detail singkat tentang kondisi jalan (kedalaman, luas, atau kendala lainnya)"
+            "lingkungan" -> "Berikan detail tentang kondisi lingkungan yang ingin dilaporkan"
+            "sosial"     -> "Berikan detail tentang permasalahan sosial yang ditemukan"
+            else         -> "Tulis catatan tambahan di sini"
+        }
 
         // Tombol back
         findViewById<ImageView>(R.id.btnBack).setOnClickListener { finish() }
@@ -220,15 +248,13 @@ class LaporanJalanActivity : AppCompatActivity() {
             ToastHelper.showError(this, "Foto wajib diambil!")
             return
         }
-
         val catatan = findViewById<EditText>(R.id.etCatatan).text.toString().trim()
 
-        // Simpan laporan ke DB
         val berhasil = db.simpanLaporan(
-            userId, "Laporkan Jalan Berlubang",
+            userId,
+            judul,
             catatan, fotoPath, alamat, latitude, longitude
         )
-
         if (berhasil) {
             // Selesaikan misi + dapat poin
             val poinDapat = db.selesaikanMisi(userId, misiId)

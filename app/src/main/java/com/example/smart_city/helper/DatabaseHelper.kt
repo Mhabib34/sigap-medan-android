@@ -366,6 +366,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     private fun insertDefaultMisi(db: SQLiteDatabase) {
         val misiList = listOf(
             arrayOf("Laporkan Jalan Berlubang", "Wilayah Medan Baru", "50", "🚧", "#E8541A", "laporan"),
+            arrayOf("Laporkan Kemacetan", "Wilayah Medan Kota", "40", "🚥", "#E8541A", "laporan"),
             arrayOf("Gunakan Trans Metro", "Halte Trans Metro Medan", "30", "🚌", "#1A6B5A", "transportasi"),
             arrayOf("Setor Sampah Plastik", "Bank Sampah Terdekat", "100", "♻️", "#2D8B70", "lingkungan")
         )

@@ -148,6 +148,19 @@
                             android:paddingEnd="20dp"
                             android:background="@drawable/bg_tab_misi_inactive"/>
 
+                        <TextView
+                            android:id="@+id/tabLaporan"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="8dp"
+                            android:text="Laporan"
+                            android:textSize="13sp"
+                            android:textColor="#888888"
+                            android:gravity="center"
+                            android:paddingStart="20dp"
+                            android:paddingEnd="20dp"
+                            android:background="@drawable/bg_tab_misi_inactive"/>
+
                     </LinearLayout>
                 </HorizontalScrollView>
 
