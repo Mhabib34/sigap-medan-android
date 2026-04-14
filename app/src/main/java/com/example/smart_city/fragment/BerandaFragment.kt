@@ -19,12 +19,19 @@ class BerandaFragment : Fragment() {
 
     private lateinit var db: DatabaseHelper
     private var userId = 0
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper()) // ← tambah
+    private var pendingRunnable: Runnable? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_beranda, container, false)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        pendingRunnable?.let { handler.removeCallbacks(it) } // ← cancel handler
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -49,36 +56,41 @@ class BerandaFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        if (!isAdded || context == null) return
         // Refresh data saat kembali ke fragment
         view?.let {
             loadUserData(it)
             loadMisi(it)
             loadLeaderboard(it)
+            loadBadge(it)
         }
     }
 
-    private fun loadData(view: View){
+    private fun loadData(view: View) {
         val skeleton = view.findViewById<View>(R.id.skeletonLayout)
         val content = view.findViewById<View>(R.id.contentLayout)
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
 
-        skeleton.visibility = View.VISIBLE
-        content.visibility = View.GONE
+            skeleton.visibility = View.VISIBLE
+            content.visibility = View.GONE
 
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+
+        pendingRunnable?.let { handler.removeCallbacks(it) }
+
+        pendingRunnable = Runnable {
+            if (!isAdded || context == null) return@Runnable
 
             loadUserData(view)
             loadMisi(view)
             loadLeaderboard(view)
+            loadBadge(view)
 
             skeleton.visibility = View.GONE
             content.visibility = View.VISIBLE
-
             swipeRefresh.isRefreshing = false
-
-        }, 500)
+        }
+        handler.postDelayed(pendingRunnable!!, 500)
     }
-
     private fun loadUserData(view: View) {
         val user = db.getUserById(userId) ?: return
         val nama = user["nama"] ?: "User"
@@ -102,6 +114,7 @@ class BerandaFragment : Fragment() {
     }
 
     private fun loadMisi(view: View) {
+        if (!isAdded || context == null) return
         val misiList = db.getMisiHariIni()
         val container = view.findViewById<LinearLayout>(R.id.containerMisi)
         container.removeAllViews()
@@ -168,7 +181,66 @@ class BerandaFragment : Fragment() {
         }
     }
 
+    private fun loadBadge(view: View) {
+        if (!isAdded || context == null) return
+        val container = view.findViewById<LinearLayout>(R.id.containerBadge)
+        container.removeAllViews()
+
+        val badgeList = db.getBadgeUser(userId)
+
+        badgeList.forEach { badge ->
+            val unlocked = badge["unlocked"] == "1"
+
+            val itemLayout = LinearLayout(requireContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                orientation = LinearLayout.VERTICAL
+                gravity = android.view.Gravity.CENTER
+            }
+
+            val cardView = androidx.cardview.widget.CardView(requireContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(56.dpToPx(), 56.dpToPx())
+                radius = 28.dpToPx().toFloat()
+                cardElevation = 0f
+                setCardBackgroundColor(Color.parseColor(
+                    if (unlocked) badge["warna"] ?: "#F0F0F0" else "#F0F0F0"
+                ))
+            }
+
+            val tvIcon = TextView(requireContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT)
+                text = badge["icon"]
+                textSize = 24f
+                gravity = android.view.Gravity.CENTER
+                alpha = if (unlocked) 1f else 0.3f
+            }
+            cardView.addView(tvIcon)
+
+            val tvNama = TextView(requireContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT).also {
+                    it.topMargin = 6.dpToPx()
+                }
+                text = badge["nama"]?.uppercase()
+                textSize = 9f
+                setTextColor(Color.parseColor(if (unlocked) "#888888" else "#BBBBBB"))
+                gravity = android.view.Gravity.CENTER
+            }
+
+            itemLayout.addView(cardView)
+            itemLayout.addView(tvNama)
+            container.addView(itemLayout)
+        }
+    }
+
+    private fun Int.dpToPx(): Int =
+        (this * resources.displayMetrics.density).toInt()
+
     private fun loadLeaderboard(view: View) {
+        if (!isAdded || context == null) return
         val topWarga = db.getTopWarga(3)
         val container = view.findViewById<LinearLayout>(R.id.containerLeaderboard)
         container.removeAllViews()

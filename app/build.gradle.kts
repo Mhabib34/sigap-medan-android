@@ -36,11 +36,13 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-splashscreen:1.2.0")
-    implementation("com.google.android.material:material:1.13.0")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+    implementation("androidx.core:core-splashscreen:1.0.0")
+    implementation("com.google.android.material:material:1.9.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
-    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
