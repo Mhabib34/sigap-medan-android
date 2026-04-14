@@ -8,6 +8,7 @@ import android.view.*
 import android.widget.*
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smart_city.R
 import com.example.smart_city.activity.LaporanJalanActivity
 import com.example.smart_city.activity.ScanQrActivity
@@ -18,6 +19,8 @@ class MisiFragment : Fragment() {
     private lateinit var db: DatabaseHelper
     private var userId = 0
     private var filterAktif = "semua"
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper()) // ← tambah
+    private var pendingRunnable: Runnable? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -33,17 +36,54 @@ class MisiFragment : Fragment() {
             .getSharedPreferences("smartcity_session", Context.MODE_PRIVATE)
         userId = sharedPref.getInt("user_id", 0)
 
-        setupFilter(view)
-        loadCapaian(view)
-        loadMisi(view, filterAktif)
+        loadData(view)
+
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshMisi)
+        // Tampilkan skeleton dulu
+        swipeRefresh.setOnRefreshListener {
+            //load data di beranda
+            loadData(view)
+        }
+    }
+
+    private fun loadData(view: View) {
+        val skeleton = view.findViewById<View>(R.id.skeletonMisi)
+        val content = view.findViewById<View>(R.id.contentMisi)
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshMisi)
+
+            skeleton.visibility = View.VISIBLE
+            content.visibility = View.GONE
+
+
+        pendingRunnable?.let { handler.removeCallbacks(it) }
+        pendingRunnable = Runnable {
+            if (!isAdded || context == null) return@Runnable
+
+            skeleton.visibility = View.GONE
+            content.visibility = View.VISIBLE
+            swipeRefresh.isRefreshing = false
+
+            setupFilter(view)
+            loadCapaian(view)
+            loadMisi(view, filterAktif)
+        }
+        handler.postDelayed(pendingRunnable!!, 500)
     }
 
     override fun onResume() {
         super.onResume()
+        if (!isAdded || context == null) return // ← tambah
         view?.let {
-            loadCapaian(it)
-            loadMisi(it, filterAktif)
+            if (it.findViewById<View>(R.id.contentMisi).visibility == View.VISIBLE) {
+                loadCapaian(it)
+                loadMisi(it, filterAktif)
+            }
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        pendingRunnable?.let { handler.removeCallbacks(it) } // ← cancel handler
     }
 
     private fun setupFilter(view: View) {
@@ -78,6 +118,7 @@ class MisiFragment : Fragment() {
     }
 
     private fun loadCapaian(view: View) {
+        if (!isAdded || context == null) return
         val user = db.getUserById(userId) ?: return
         val poin = user["poin"]?.toInt() ?: 0
         val target = DatabaseHelper.getTargetPoin(poin)
@@ -90,6 +131,7 @@ class MisiFragment : Fragment() {
     }
 
     private fun loadMisi(view: View, filter: String) {
+        if (!isAdded || context == null) return
         val container = view.findViewById<LinearLayout>(R.id.containerMisiFragment)
         container.removeAllViews()
 
@@ -101,7 +143,8 @@ class MisiFragment : Fragment() {
             val kategori = misi["kategori"] ?: ""
             val warna = misi["warna"] ?: "#E8541A"
 
-            val itemView = LayoutInflater.from(requireContext())
+            val ctx = requireContext() // aman karena sudah cek isAdded di atas
+            val itemView = LayoutInflater.from(ctx)
                 .inflate(R.layout.item_misi_fragment, container, false)
 
             // Set data
@@ -134,26 +177,24 @@ class MisiFragment : Fragment() {
                 btnSelesaikan.alpha = 0.5f
             } else {
                 btnSelesaikan.setOnClickListener {
+                    val safeCtx = context ?: return@setOnClickListener  // ← lebih aman
                     when (kategori) {
                         "laporan" -> {
-                            // Buka form laporan jalan
-                            val intent = Intent(requireContext(), LaporanJalanActivity::class.java)
-                            intent.putExtra("misi_id", misiId)
-                            intent.putExtra("poin", misi["poin"]?.toInt() ?: 50)
-                            startActivity(intent)
+                            startActivity(Intent(safeCtx, LaporanJalanActivity::class.java).apply {
+                                putExtra("misi_id", misiId)
+                                putExtra("poin", misi["poin"]?.toInt() ?: 50)
+                            })
                         }
                         "transportasi", "lingkungan" -> {
-                            // Buka QR Scanner
-                            val intent = Intent(requireContext(), ScanQrActivity::class.java)
-                            intent.putExtra("misi_id", misiId)
-                            intent.putExtra("poin", misi["poin"]?.toInt() ?: 30)
-                            intent.putExtra("judul", misi["judul"])
-                            startActivity(intent)
+                            startActivity(Intent(safeCtx, ScanQrActivity::class.java).apply {
+                                putExtra("misi_id", misiId)
+                                putExtra("poin", misi["poin"]?.toInt() ?: 30)
+                                putExtra("judul", misi["judul"])
+                            })
                         }
                     }
                 }
             }
-
             container.addView(itemView)
         }
     }
