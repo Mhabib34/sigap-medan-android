@@ -70,7 +70,7 @@ class HadiahFragment : Fragment() {
             loadHadiah(view, filterAktif)
             loadRekomendasi(view)
         }
-        handler.postDelayed(pendingRunnable!!, 500)
+        handler.postDelayed(pendingRunnable!!, 400)
     }
 
     override fun onResume() {

@@ -89,7 +89,7 @@ class BerandaFragment : Fragment() {
             content.visibility = View.VISIBLE
             swipeRefresh.isRefreshing = false
         }
-        handler.postDelayed(pendingRunnable!!, 500)
+        handler.postDelayed(pendingRunnable!!, 400)
     }
     private fun loadUserData(view: View) {
         val user = db.getUserById(userId) ?: return
