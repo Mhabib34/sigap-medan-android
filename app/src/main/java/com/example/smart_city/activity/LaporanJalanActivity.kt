@@ -26,6 +26,8 @@ class LaporanJalanActivity : AppCompatActivity() {
 
     private lateinit var db: DatabaseHelper
     private lateinit var fusedLocation: FusedLocationProviderClient
+
+    private var isLocationManuallySet = false
     private var fotoUri: Uri? = null
     private var fotoPath: String = ""
     private var latitude: Double = 0.0
@@ -43,6 +45,7 @@ class LaporanJalanActivity : AppCompatActivity() {
         const val REQ_KAMERA = 100
         const val REQ_GALERI = 101
         const val REQ_PERMISSION = 102
+        const val REQ_LOCATION_PICKER = 104
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +53,6 @@ class LaporanJalanActivity : AppCompatActivity() {
         supportActionBar?.hide()
         setContentView(R.layout.activity_laporan_jalan)
 
-        // ✅ Baca intent DULU sebelum dipakai
         db = DatabaseHelper(this)
         fusedLocation = LocationServices.getFusedLocationProviderClient(this)
 
@@ -62,57 +64,74 @@ class LaporanJalanActivity : AppCompatActivity() {
         userId   = getSharedPreferences("smartcity_session", MODE_PRIVATE)
             .getInt("user_id", 0)
 
-        // ✅ Baru update UI setelah data tersedia
         findViewById<TextView>(R.id.tvJudulLaporan).text = judul
-
-        // ← tambah ini
         findViewById<TextView>(R.id.tvFotoLabel).text = "Ambil Foto $judul"
-        findViewById<TextView>(R.id.tvFotoSubLabel).text = when (kategori) {
-            "laporan"    -> "Pastikan objek terlihat jelas"
-            "lingkungan" -> "Pastikan kondisi lingkungan terlihat jelas"
-            "sosial"     -> "Pastikan situasi terlihat jelas"
-            else         -> "Pastikan foto terlihat jelas"
+        findViewById<TextView>(R.id.tvFotoSubLabel).text = when {
+            judul.contains("Jalan Berlubang", ignoreCase = true)  -> "Pastikan lubang jalan terlihat jelas"
+            judul.contains("Kemacetan", ignoreCase = true)        -> "Pastikan kondisi kemacetan terlihat jelas"
+            judul.contains("Drainase", ignoreCase = true)         -> "Pastikan saluran drainase yang tersumbat terlihat jelas"
+            judul.contains("TPS", ignoreCase = true)              -> "Pastikan kondisi TPS yang penuh terlihat jelas"
+            judul.contains("Parkir Liar", ignoreCase = true)      -> "Pastikan kendaraan yang parkir liar terlihat jelas"
+            judul.contains("Lampu Jalan", ignoreCase = true)      -> "Pastikan tiang/lampu jalan yang mati terlihat jelas"
+            else                                                   -> "Pastikan objek terlihat jelas"
         }
 
         val etCatatan = findViewById<EditText>(R.id.etCatatan)
-        etCatatan.hint = when (kategori) {
-            "laporan"    -> "Berikan detail singkat tentang kondisi jalan (kedalaman, luas, atau kendala lainnya)"
-            "lingkungan" -> "Berikan detail tentang kondisi lingkungan yang ingin dilaporkan"
-            "sosial"     -> "Berikan detail tentang permasalahan sosial yang ditemukan"
-            else         -> "Tulis catatan tambahan di sini"
+        etCatatan.hint = when {
+            judul.contains("Jalan Berlubang", ignoreCase = true)  ->
+                "Berikan detail kondisi jalan (kedalaman, luas, atau kendala lainnya)"
+            judul.contains("Kemacetan", ignoreCase = true)        ->
+                "Berikan detail kemacetan (panjang antrian, penyebab, atau perkiraan waktu)"
+            judul.contains("Drainase", ignoreCase = true)         ->
+                "Berikan detail drainase (lokasi tepat, penyebab sumbatan, sudah berapa lama)"
+            judul.contains("TPS", ignoreCase = true)              ->
+                "Berikan detail kondisi TPS (seberapa penuh, jenis sampah, bau atau tidak)"
+            judul.contains("Parkir Liar", ignoreCase = true)      ->
+                "Berikan detail parkir liar (jenis kendaraan, mengganggu arus lalu lintas atau tidak)"
+            judul.contains("Lampu Jalan", ignoreCase = true)      ->
+                "Berikan detail lampu jalan (jumlah yang mati, sudah berapa lama, dampak ke warga)"
+            else                                                   ->
+                "Tulis catatan tambahan di sini"
         }
 
-        // Tombol back
         findViewById<ImageView>(R.id.btnBack).setOnClickListener { finish() }
 
-        // Tombol kamera
         findViewById<Button>(R.id.btnKamera).setOnClickListener {
             requestPermissionsAndOpenCamera()
         }
 
-        // Tombol galeri
         findViewById<Button>(R.id.btnGaleri).setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
             startActivityForResult(intent, REQ_GALERI)
         }
 
-        // Klik area foto juga buka pilihan
         findViewById<androidx.cardview.widget.CardView>(R.id.cardFoto).setOnClickListener {
             showFotoOptions()
         }
 
-        // Tombol ganti lokasi
+        // ✅ Ganti Lokasi → buka LocationPickerActivity
         findViewById<Button>(R.id.btnGantiLokasi).setOnClickListener {
-            getLocation()
+            val intent = Intent(this, LocationPickerActivity::class.java).apply {
+                putExtra("current_lat", latitude)
+                putExtra("current_lng", longitude)
+                putExtra("current_alamat", alamat)
+            }
+            startActivityForResult(intent, REQ_LOCATION_PICKER)
         }
 
-        // Tombol kirim
         findViewById<Button>(R.id.btnKirimLaporan).setOnClickListener {
             kirimLaporan()
         }
 
-        // Ambil lokasi otomatis
-        getLocation()
+    }
+
+    // Hapus getLocation() dari onCreate, ganti dengan ini:
+    override fun onResume() {
+        super.onResume()
+        // Jangan ambil GPS kalau user sudah pilih manual
+        if (!isLocationManuallySet) {
+            getLocation()
+        }
     }
 
     private fun showFotoOptions() {
@@ -122,8 +141,10 @@ class LaporanJalanActivity : AppCompatActivity() {
             .setItems(options) { _, which ->
                 if (which == 0) requestPermissionsAndOpenCamera()
                 else {
-                    val intent = Intent(Intent.ACTION_PICK,
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                    val intent = Intent(
+                        Intent.ACTION_PICK,
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                    )
                     startActivityForResult(intent, REQ_GALERI)
                 }
             }.show()
@@ -131,9 +152,11 @@ class LaporanJalanActivity : AppCompatActivity() {
 
     private fun requestPermissionsAndOpenCamera() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                arrayOf(Manifest.permission.CAMERA), REQ_PERMISSION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(Manifest.permission.CAMERA), REQ_PERMISSION
+            )
         } else {
             openKamera()
         }
@@ -141,11 +164,12 @@ class LaporanJalanActivity : AppCompatActivity() {
 
     private fun openKamera() {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val fotoFile = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES),
-            "LAPORAN_$timeStamp.jpg")
+        val fotoFile = File(
+            getExternalFilesDir(Environment.DIRECTORY_PICTURES),
+            "LAPORAN_$timeStamp.jpg"
+        )
         fotoPath = fotoFile.absolutePath
-        fotoUri = FileProvider.getUriForFile(this,
-            "${packageName}.provider", fotoFile)
+        fotoUri = FileProvider.getUriForFile(this, "${packageName}.provider", fotoFile)
 
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         intent.putExtra(MediaStore.EXTRA_OUTPUT, fotoUri)
@@ -153,20 +177,31 @@ class LaporanJalanActivity : AppCompatActivity() {
     }
 
     private fun getLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION), 103)
+        // ✅ Guard di luar callback, bukan hanya di dalam
+        if (isLocationManuallySet) return
+
+        if (ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                103
+            )
             return
         }
 
         fusedLocation.lastLocation.addOnSuccessListener { location ->
+            // ✅ Double-check di dalam callback juga (untuk race condition)
+            if (isLocationManuallySet) return@addOnSuccessListener
+
             if (location != null) {
                 latitude = location.latitude
                 longitude = location.longitude
-
-                // Reverse geocoding
                 try {
                     val geocoder = Geocoder(this, Locale("id", "ID"))
                     val addresses = geocoder.getFromLocation(latitude, longitude, 1)
@@ -174,49 +209,74 @@ class LaporanJalanActivity : AppCompatActivity() {
                         val addr = addresses[0]
                         alamat = addr.thoroughfare ?: addr.subLocality ?: "Medan"
                         val kota = addr.subAdminArea ?: "Kota Medan"
-                        findViewById<TextView>(R.id.tvAlamat).text = alamat
-                        findViewById<TextView>(R.id.tvKota).text = "$kota, Sumut"
+                        runOnUiThread {
+                            findViewById<TextView>(R.id.tvAlamat).text = alamat
+                            findViewById<TextView>(R.id.tvKota).text = "$kota, Sumut"
+                        }
                     }
                 } catch (e: Exception) {
-                    findViewById<TextView>(R.id.tvAlamat).text = "Jl. Medan"
+                    runOnUiThread {
+                        findViewById<TextView>(R.id.tvAlamat).text = "Jl. Medan"
+                    }
                 }
             } else {
-                // Fallback hardcoded
-                latitude = 3.5952
+                latitude  = 3.5952
                 longitude = 98.6722
-                alamat = "Jl. Sudirman"
-                findViewById<TextView>(R.id.tvAlamat).text = alamat
-                findViewById<TextView>(R.id.tvKota).text = "Kota Medan, Sumut"
+                alamat    = "Jl. Sudirman"
+                runOnUiThread {
+                    findViewById<TextView>(R.id.tvAlamat).text = alamat
+                    findViewById<TextView>(R.id.tvKota).text   = "Kota Medan, Sumut"
+                }
             }
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK) {
-            when (requestCode) {
-                REQ_KAMERA -> {
-                    // Foto dari kamera
-                    fotoUri?.let {
-                        val ivPreview = findViewById<ImageView>(R.id.ivFotoPreview)
-                        val layoutUpload = findViewById<android.view.View>(R.id.layoutUpload)
-                        ivPreview.setImageURI(it)
-                        ivPreview.visibility = android.view.View.VISIBLE
-                        layoutUpload.visibility = android.view.View.GONE
-                    }
+        if (resultCode != Activity.RESULT_OK) return
+
+        when (requestCode) {
+            REQ_KAMERA -> {
+                fotoUri?.let {
+                    val ivPreview    = findViewById<ImageView>(R.id.ivFotoPreview)
+                    val layoutUpload = findViewById<android.view.View>(R.id.layoutUpload)
+                    ivPreview.setImageURI(it)
+                    ivPreview.visibility    = android.view.View.VISIBLE
+                    layoutUpload.visibility = android.view.View.GONE
                 }
-                REQ_GALERI -> {
-                    // Foto dari galeri
-                    data?.data?.let { uri ->
-                        fotoUri = uri
-                        fotoPath = uri.toString()
-                        val ivPreview = findViewById<ImageView>(R.id.ivFotoPreview)
-                        val layoutUpload = findViewById<android.view.View>(R.id.layoutUpload)
-                        ivPreview.setImageURI(uri)
-                        ivPreview.visibility = android.view.View.VISIBLE
-                        layoutUpload.visibility = android.view.View.GONE
-                    }
+            }
+
+            REQ_GALERI -> {
+                data?.data?.let { uri ->
+                    fotoUri  = uri
+                    fotoPath = uri.toString()
+                    val ivPreview    = findViewById<ImageView>(R.id.ivFotoPreview)
+                    val layoutUpload = findViewById<android.view.View>(R.id.layoutUpload)
+                    ivPreview.setImageURI(uri)
+                    ivPreview.visibility    = android.view.View.VISIBLE
+                    layoutUpload.visibility = android.view.View.GONE
                 }
+            }
+
+            // ✅ Terima hasil dari LocationPickerActivity
+            REQ_LOCATION_PICKER -> {
+                // ✅ Set flag PERTAMA sebelum assign nilai apapun
+                isLocationManuallySet = true
+
+                val newLat    = data?.getDoubleExtra("lat", latitude)    ?: latitude
+                val newLng    = data?.getDoubleExtra("lng", longitude)   ?: longitude
+                val newAlamat = data?.getStringExtra("alamat")           ?: alamat
+
+                latitude  = newLat
+                longitude = newLng
+                alamat    = newAlamat
+
+                runOnUiThread {
+                    findViewById<TextView>(R.id.tvAlamat).text = newAlamat
+                    // Update tvKota juga supaya konsisten
+                    findViewById<TextView>(R.id.tvKota).text = "Lokasi dipilih manual"
+                }
+                Toast.makeText(this, "📍 Lokasi diperbarui!", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -228,17 +288,14 @@ class LaporanJalanActivity : AppCompatActivity() {
         when (requestCode) {
             REQ_PERMISSION -> {
                 if (grantResults.isNotEmpty() &&
-                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    openKamera()
-                } else {
-                    ToastHelper.showError(this, "Izin kamera diperlukan!")
-                }
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED
+                ) openKamera()
+                else ToastHelper.showError(this, "Izin kamera diperlukan!")
             }
             103 -> {
                 if (grantResults.isNotEmpty() &&
-                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    getLocation()
-                }
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED
+                ) getLocation()
             }
         }
     }
@@ -251,12 +308,9 @@ class LaporanJalanActivity : AppCompatActivity() {
         val catatan = findViewById<EditText>(R.id.etCatatan).text.toString().trim()
 
         val berhasil = db.simpanLaporan(
-            userId,
-            judul,
-            catatan, fotoPath, alamat, latitude, longitude
+            userId, judul, catatan, fotoPath, alamat, latitude, longitude
         )
         if (berhasil) {
-            // Selesaikan misi + dapat poin
             val poinDapat = db.selesaikanMisi(userId, misiId)
             if (poinDapat > 0) {
                 ToastHelper.showSuccess(this, "🎉 Laporan terkirim! +$poinDapat poin")

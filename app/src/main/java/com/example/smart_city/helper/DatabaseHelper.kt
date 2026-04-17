@@ -9,7 +9,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     companion object {
         const val DATABASE_NAME = "smartcity.db"
-        const val DATABASE_VERSION = 3
+        const val DATABASE_VERSION = 4
 
         // Tabel User
         const val TABLE_USER = "users"
@@ -120,17 +120,17 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     private fun insertDefaultHadiah(db: SQLiteDatabase) {
         val hadiahList = listOf(
             arrayOf("Voucher Mie Aceh Titi Bobrok", "Voucher makan gratis 1 porsi", "300",
-                "voucher", "https://i.imgur.com/8K3VKQY.jpeg"),
+                "voucher", "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=300"),
             arrayOf("Kopi Kenangan 50% Disc", "Diskon 50% untuk semua menu", "150",
-                "voucher", "https://i.imgur.com/zGJeHFS.jpeg"),
+                "voucher", "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300"),
             arrayOf("General Checkup RS Siloam", "Paket general checkup lengkap", "2500",
-                "voucher", "https://i.imgur.com/QHkK3XR.jpeg"),
+                "voucher", "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=300"),
             arrayOf("Pahlawan Lingkungan Medan", "Badge eksklusif pecinta lingkungan", "500",
-                "badge", "https://i.imgur.com/7YttZNB.png"),
+                "badge", "https://images.unsplash.com/photo-1719463814255-a7ee39b3630a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8YmFkZ2V8ZW58MHx8MHx8fDA%3D"),
             arrayOf("Staycation 1 Malam JW Marriott", "Promo terbatas menginap 1 malam", "5000",
-                "promo", "https://i.imgur.com/fTMQHXr.jpeg"),
+                "promo", "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300"),
             arrayOf("Voucher GrabFood 50rb", "Voucher diskon GrabFood", "400",
-                "voucher", "https://i.imgur.com/9vP8K3Y.jpeg")
+                "voucher", "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300")
         )
         hadiahList.forEach {
             db.execSQL("""
@@ -365,10 +365,17 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     private fun insertDefaultMisi(db: SQLiteDatabase) {
         val misiList = listOf(
+            // Misi lama
             arrayOf("Laporkan Jalan Berlubang", "Wilayah Medan Baru", "50", "🚧", "#E8541A", "laporan"),
             arrayOf("Laporkan Kemacetan", "Wilayah Medan Kota", "40", "🚥", "#E8541A", "laporan"),
             arrayOf("Gunakan Trans Metro", "Halte Trans Metro Medan", "30", "🚌", "#1A6B5A", "transportasi"),
-            arrayOf("Setor Sampah Plastik", "Bank Sampah Terdekat", "100", "♻️", "#2D8B70", "lingkungan")
+            arrayOf("Setor Sampah Plastik", "Bank Sampah Terdekat", "100", "♻️", "#2D8B70", "lingkungan"),
+
+            // Misi baru
+            arrayOf("Laporkan Drainase Tersumbat", "Wilayah Medan Barat", "60", "🌊", "#E8541A", "laporan"),
+            arrayOf("Laporkan TPS Overload", "TPS Terdekat di Medan", "55", "🗑️", "#E8541A", "laporan"),
+            arrayOf("Laporkan Parkir Liar", "Wilayah Medan Kota", "45", "🚗", "#E8541A", "laporan"),
+            arrayOf("Laporkan Lampu Jalan Mati", "Wilayah Medan Timur", "50", "💡", "#E8541A", "laporan")
         )
         misiList.forEach {
             db.execSQL("""
@@ -699,5 +706,144 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         cursor.close()
         db.close()
         return list
+    }
+
+    fun getAllLaporan(): List<Map<String, String>> {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_LAPORAN,
+            null,
+            null, null, null, null,
+            "$COL_LAP_TANGGAL DESC" // terbaru di atas
+        )
+        val list = mutableListOf<Map<String, String>>()
+        while (cursor.moveToNext()) {
+            list.add(
+                mapOf(
+                    "id"      to cursor.getString(cursor.getColumnIndexOrThrow(COL_LAP_ID)),
+                    "user_id" to cursor.getString(cursor.getColumnIndexOrThrow(COL_LAP_USER_ID)),
+                    "judul"   to cursor.getString(cursor.getColumnIndexOrThrow(COL_LAP_JUDUL)),
+                    "catatan" to (cursor.getString(cursor.getColumnIndexOrThrow(COL_LAP_CATATAN)) ?: ""),
+                    "foto"    to (cursor.getString(cursor.getColumnIndexOrThrow(COL_LAP_FOTO)) ?: ""),
+                    "lokasi"  to (cursor.getString(cursor.getColumnIndexOrThrow(COL_LAP_LOKASI)) ?: ""),
+                    "lat"     to cursor.getString(cursor.getColumnIndexOrThrow(COL_LAP_LAT)),
+                    "lng"     to cursor.getString(cursor.getColumnIndexOrThrow(COL_LAP_LNG)),
+                    "tanggal" to cursor.getString(cursor.getColumnIndexOrThrow(COL_LAP_TANGGAL))
+                )
+            )
+        }
+        cursor.close()
+        db.close()
+        return list
+    }
+
+    fun getLaporanHariIni(): Int {
+        val db = readableDatabase
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            .format(java.util.Date())
+        val cursor = db.rawQuery(
+            "SELECT COUNT(*) FROM $TABLE_LAPORAN WHERE $COL_LAP_TANGGAL LIKE ?",
+            arrayOf("$today%")
+        )
+        cursor.moveToFirst()
+        val count = cursor.getInt(0)
+        cursor.close()
+        db.close()
+        return count
+    }
+
+    fun getLaporanKemarin(): Int {
+        val db = readableDatabase
+        val cal = java.util.Calendar.getInstance()
+        cal.add(java.util.Calendar.DATE, -1)
+        val kemarin = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            .format(cal.time)
+        val cursor = db.rawQuery(
+            "SELECT COUNT(*) FROM $TABLE_LAPORAN WHERE $COL_LAP_TANGGAL LIKE ?",
+            arrayOf("$kemarin%")
+        )
+        cursor.moveToFirst()
+        val count = cursor.getInt(0)
+        cursor.close()
+        db.close()
+        return count
+    }
+
+    fun getClusterStats(allReports: List<Map<String, String>>): Triple<Int, Int, Int> {
+        // Konversi ke pair lat/lng
+        val points = allReports.mapNotNull { row ->
+            val lat = row["lat"]?.toDoubleOrNull() ?: return@mapNotNull null
+            val lng = row["lng"]?.toDoubleOrNull() ?: return@mapNotNull null
+            Pair(lat, lng)
+        }
+
+        val CLUSTER_RADIUS = 0.003
+        val visited = BooleanArray(points.size)
+        val clusterSizes = mutableListOf<Int>()
+
+        for (i in points.indices) {
+            if (visited[i]) continue
+            var size = 1
+            for (j in i + 1 until points.size) {
+                if (!visited[j]) {
+                    val dlat = points[i].first - points[j].first
+                    val dlng = points[i].second - points[j].second
+                    if (kotlin.math.sqrt(dlat * dlat + dlng * dlng) < CLUSTER_RADIUS) {
+                        visited[j] = true
+                        size++
+                    }
+                }
+            }
+            visited[i] = true
+            clusterSizes.add(size)
+        }
+
+        val maxSize = clusterSizes.maxOrNull() ?: 1
+
+        // Hitung threshold dinamis
+        val thresholdKritis = (maxSize * 0.70).toInt().coerceAtLeast(2)
+        val thresholdSedang = (maxSize * 0.35).toInt().coerceAtLeast(1)
+
+        // Hitung jumlah klaster per tier
+        val kritis  = clusterSizes.count { it >= thresholdKritis }
+        val sedang  = clusterSizes.count { it in thresholdSedang until thresholdKritis }
+        val rendah  = clusterSizes.count { it < thresholdSedang }
+
+        return Triple(kritis, sedang, rendah)
+    }
+
+    fun getThresholds(allReports: List<Map<String, String>>): Pair<Int, Int> {
+        val points = allReports.mapNotNull { row ->
+            val lat = row["lat"]?.toDoubleOrNull() ?: return@mapNotNull null
+            val lng = row["lng"]?.toDoubleOrNull() ?: return@mapNotNull null
+            Pair(lat, lng)
+        }
+
+        val CLUSTER_RADIUS = 0.003
+        val visited = BooleanArray(points.size)
+        val clusterSizes = mutableListOf<Int>()
+
+        for (i in points.indices) {
+            if (visited[i]) continue
+            var size = 1
+            for (j in i + 1 until points.size) {
+                if (!visited[j]) {
+                    val dlat = points[i].first - points[j].first
+                    val dlng = points[i].second - points[j].second
+                    if (kotlin.math.sqrt(dlat * dlat + dlng * dlng) < CLUSTER_RADIUS) {
+                        visited[j] = true
+                        size++
+                    }
+                }
+            }
+            visited[i] = true
+            clusterSizes.add(size)
+        }
+
+        val maxSize = clusterSizes.maxOrNull() ?: 1
+        val thresholdKritis = (maxSize * 0.70).toInt().coerceAtLeast(2)
+        val thresholdSedang = (maxSize * 0.35).toInt().coerceAtLeast(1)
+
+        return Pair(thresholdKritis, thresholdSedang) // (kritis, sedang)
     }
 }

@@ -13,7 +13,7 @@
         android:icon="@android:drawable/ic_menu_myplaces"
         android:title="HADIAH"/>
     <item
-        android:id="@+id/nav_dashboard"
-        android:icon="@android:drawable/ic_menu_agenda"
-        android:title="DASHBOARD"/>
+        android:id="@+id/navigation_heatmap"
+        android:icon="@android:drawable/ic_dialog_map"
+        android:title="Peta"/>
 </menu>

@@ -161,18 +161,36 @@ class MisiFragment : Fragment() {
             itemView.findViewById<TextView>(R.id.tvPoinMisi).text = "🪙 ${misi["poin"]} poin"
 
             // Deskripsi per kategori
-            itemView.findViewById<TextView>(R.id.tvDeskripsi).text = when (kategori) {
-                "laporan" -> "Ambil foto dan lokasi jalan rusak di sekitar wilayah Medan Baru."
-                "transportasi" -> "Naik bus Trans Metro Medan hari ini untuk perjalanan ramah lingkungan."
-                "lingkungan" -> "Kunjungi Bank Sampah terdekat dan tukarkan 1kg botol plastik."
+            itemView.findViewById<TextView>(R.id.tvDeskripsi).text = when {
+                misi["judul"]?.contains("Jalan Berlubang", ignoreCase = true) == true ->
+                    "Ambil foto dan lokasi jalan rusak di sekitar wilayah Medan Baru."
+                misi["judul"]?.contains("Kemacetan", ignoreCase = true) == true ->
+                    "Foto kondisi kemacetan dan laporkan titik lokasi secara akurat."
+                misi["judul"]?.contains("Drainase", ignoreCase = true) == true ->
+                    "Temukan dan laporkan saluran drainase tersumbat di sekitar tempat tinggalmu."
+                misi["judul"]?.contains("TPS", ignoreCase = true) == true ->
+                    "Laporkan TPS yang sudah overload agar segera ditangani dinas kebersihan."
+                misi["judul"]?.contains("Parkir Liar", ignoreCase = true) == true ->
+                    "Dokumentasikan kendaraan yang parkir liar dan mengganggu arus lalu lintas."
+                misi["judul"]?.contains("Lampu Jalan", ignoreCase = true) == true ->
+                    "Laporkan lampu jalan yang mati untuk keselamatan warga di malam hari."
+                kategori == "transportasi" ->
+                    "Naik bus Trans Metro Medan hari ini untuk perjalanan ramah lingkungan."
+                kategori == "lingkungan" ->
+                    "Kunjungi Bank Sampah terdekat dan tukarkan 1kg botol plastik."
                 else -> ""
             }
 
+
             // Deadline
-            itemView.findViewById<TextView>(R.id.tvDeadline).text = when (kategori) {
-                "laporan" -> "Hingga 24 Des"
-                "transportasi" -> "Sisa 2 jam"
-                else -> "Harian"
+            itemView.findViewById<TextView>(R.id.tvDeadline).text = when {
+                misi["judul"]?.contains("Drainase", ignoreCase = true) == true  -> "Hingga 31 Des"
+                misi["judul"]?.contains("TPS", ignoreCase = true) == true       -> "Harian"
+                misi["judul"]?.contains("Parkir Liar", ignoreCase = true) == true -> "Harian"
+                misi["judul"]?.contains("Lampu Jalan", ignoreCase = true) == true -> "Hingga 31 Des"
+                kategori == "laporan"       -> "Hingga 24 Des"
+                kategori == "transportasi"  -> "Sisa 2 jam"
+                else                        -> "Harian"
             }
 
             val btnSelesaikan = itemView.findViewById<Button>(R.id.btnSelesaikan)
