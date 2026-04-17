@@ -35,10 +35,12 @@
         <activity
             android:name=".activity.LoginActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Smart_city.NoActionBar" />
         <activity
             android:name=".activity.RegisterActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Smart_city.NoActionBar" />
 
         <activity

@@ -13,6 +13,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import com.example.smart_city.R
 import com.example.smart_city.helper.DatabaseHelper
 import com.example.smart_city.helper.PasswordHelper
@@ -26,6 +27,7 @@ class RegisterActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         setContentView(R.layout.activity_register)
 
         dbHelper = DatabaseHelper(this)
