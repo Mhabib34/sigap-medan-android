@@ -162,11 +162,15 @@ class HadiahFragment : Fragment() {
             val cukupPoin = poinUser >= poinHadiah
 
             // Load gambar dengan Glide
+            val ivHadiah = itemView.findViewById<ImageView>(R.id.ivHadiah)
+            ivHadiah.setImageDrawable(null) // clear dulu sebelum load
             Glide.with(this)
                 .load(hadiah["gambar_url"])
+                .signature(com.bumptech.glide.signature.ObjectKey(hadiah["gambar_url"] ?: ""))
                 .placeholder(R.drawable.bg_skeleton)
                 .error(R.drawable.bg_skeleton)
-                .into(itemView.findViewById(R.id.ivHadiah))
+                .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.ALL)
+                .into(ivHadiah)
 
             // Set badge warna sesuai kategori
             val tvKategori = itemView.findViewById<TextView>(R.id.tvKategoriHadiah)
@@ -220,11 +224,16 @@ class HadiahFragment : Fragment() {
             val itemView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.item_rekomendasi, container, false)
 
+            val ivRek = itemView.findViewById<ImageView>(R.id.ivRekomendasiGambar)
+            ivRek.setImageDrawable(null) // clear dulu
             Glide.with(this)
                 .load(hadiah["gambar_url"])
+                .signature(com.bumptech.glide.signature.ObjectKey(hadiah["gambar_url"] ?: ""))
                 .apply(RequestOptions().transform(RoundedCorners(12)))
                 .placeholder(R.drawable.bg_skeleton)
-                .into(itemView.findViewById(R.id.ivRekomendasiGambar))
+                .error(R.drawable.bg_skeleton)
+                .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.ALL)
+                .into(ivRek)
 
             itemView.findViewById<TextView>(R.id.tvRekNama).text = hadiah["nama"]
             itemView.findViewById<TextView>(R.id.tvRekPoin).text =

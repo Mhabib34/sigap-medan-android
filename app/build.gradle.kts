@@ -1,7 +1,14 @@
+import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
 android {
     namespace = "com.example.smart_city"
     compileSdk {
@@ -18,6 +25,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        val mapsApiKey = localProperties.getProperty("MAPS_API_KEY") ?: ""
+        println("MAPS_API_KEY = $mapsApiKey")
+        manifestPlaceholders.put("MAPS_API_KEY", mapsApiKey)
     }
 
     buildTypes {
@@ -43,6 +53,8 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.android.gms:play-services-maps:20.0.0")
+    implementation("com.google.maps.android:android-maps-utils:4.1.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
