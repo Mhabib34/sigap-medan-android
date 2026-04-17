@@ -13,6 +13,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import com.example.smart_city.MainActivity
 import com.example.smart_city.R
 import com.example.smart_city.helper.DatabaseHelper
@@ -26,6 +27,7 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         setContentView(R.layout.activity_login)
 
         dbHelper = DatabaseHelper(this)

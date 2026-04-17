@@ -846,4 +846,21 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
         return Pair(thresholdKritis, thresholdSedang) // (kritis, sedang)
     }
+
+    fun getAllMisi(): List<Map<String, String>> {
+        val list = mutableListOf<Map<String, String>>()
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT * FROM misi ORDER BY id ASC", null
+        )
+        while (cursor.moveToNext()) {
+            val map = mutableMapOf<String, String>()
+            for (i in 0 until cursor.columnCount) {
+                map[cursor.getColumnName(i)] = cursor.getString(i) ?: ""
+            }
+            list.add(map)
+        }
+        cursor.close()
+        return list
+    }
 }
