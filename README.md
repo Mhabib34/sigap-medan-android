@@ -250,17 +250,6 @@ Black Box Testing was also performed on **14 functional scenarios** including au
 
 ---
 
-## 📎 Links
-
-| Resource | Link |
-|----------|------|
-| 📱 Download APK | *Coming soon* |
-| 🎬 Demo Video | *Coming soon* |
-| 🎨 Figma Design | *Coming soon* |
-| 📄 Full Proposal | Available in repo |
-
----
-
 ## 📄 License
 
 This project is developed for academic and competition purposes under **Universitas Potensi Utama Medan**.
