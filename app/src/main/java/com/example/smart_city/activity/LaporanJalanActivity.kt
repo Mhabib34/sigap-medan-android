@@ -21,6 +21,7 @@ import com.google.android.gms.location.LocationServices
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.get
 
 class LaporanJalanActivity : AppCompatActivity() {
 
@@ -151,15 +152,58 @@ class LaporanJalanActivity : AppCompatActivity() {
     }
 
     private fun requestPermissionsAndOpenCamera() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.CAMERA), REQ_PERMISSION
-            )
-        } else {
-            openKamera()
+        when {
+            // Sudah ada izin → langsung buka kamera
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED -> {
+                openKamera()
+            }
+
+            // Pernah deny sekali → tampilkan rationale dulu
+            ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA) -> {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("Izin Kamera Diperlukan")
+                    .setMessage("Aplikasi membutuhkan akses kamera untuk mengambil foto laporan. Mohon izinkan akses kamera.")
+                    .setPositiveButton("Izinkan") { _, _ ->
+                        ActivityCompat.requestPermissions(
+                            this, arrayOf(Manifest.permission.CAMERA), REQ_PERMISSION
+                        )
+                    }
+                    .setNegativeButton("Batal", null)
+                    .show()
+            }
+
+            // ✅ Permanently denied → hanya kalau SUDAH pernah diminta sebelumnya
+            isCameraPermissionEverRequested() -> {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("Izin Kamera Diblokir")
+                    .setMessage("Izin kamera telah ditolak secara permanen. Silakan aktifkan secara manual di Pengaturan aplikasi.")
+                    .setPositiveButton("Buka Pengaturan") { _, _ ->
+                        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", packageName, null)
+                        }
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("Batal", null)
+                    .show()
+            }
+
+            // ✅ Belum pernah diminta sama sekali → minta izin pertama kali
+            else -> {
+                getSharedPreferences("smartcity_perm", MODE_PRIVATE)
+                    .edit().putBoolean("camera_requested", true).apply()
+
+                ActivityCompat.requestPermissions(
+                    this, arrayOf(Manifest.permission.CAMERA), REQ_PERMISSION
+                )
+            }
         }
+    }
+
+    // ✅ Tambah helper ini
+    private fun isCameraPermissionEverRequested(): Boolean {
+        return getSharedPreferences("smartcity_perm", MODE_PRIVATE)
+            .getBoolean("camera_requested", false)
     }
 
     private fun openKamera() {
@@ -176,27 +220,68 @@ class LaporanJalanActivity : AppCompatActivity() {
         startActivityForResult(intent, REQ_KAMERA)
     }
 
+    // ✅ GANTI fungsi getLocation()
     private fun getLocation() {
-        // ✅ Guard di luar callback, bukan hanya di dalam
         if (isLocationManuallySet) return
 
-        if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ),
-                103
-            )
-            return
+        when {
+            // Sudah ada izin → ambil lokasi
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED -> {
+                ambilLokasiGps()
+            }
+
+            // Permanently denied → dialog ke Settings lalu finish()
+            !ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    && isPermissionEverRequested() -> {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("Izin Lokasi Diblokir")
+                    .setMessage("Izin lokasi telah ditolak secara permanen. Aktifkan di Pengaturan aplikasi.")
+                    .setPositiveButton("Buka Pengaturan") { _, _ ->
+                        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", packageName, null)
+                        }
+                        startActivity(intent)
+                        finish()
+                    }
+                    .setNegativeButton("Batal") { _, _ -> finish() }
+                    .setCancelable(false)
+                    .show()
+            }
+
+            // Belum ada izin → minta izin
+            else -> {
+                // Tandai bahwa permission sudah pernah diminta
+                getSharedPreferences("smartcity_perm", MODE_PRIVATE)
+                    .edit().putBoolean("location_requested", true).apply()
+
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ),
+                    103
+                )
+            }
         }
+    }
+
+    // ✅ Fungsi helper untuk cek apakah permission pernah diminta sebelumnya
+    private fun isPermissionEverRequested(): Boolean {
+        return getSharedPreferences("smartcity_perm", MODE_PRIVATE)
+            .getBoolean("location_requested", false)
+    }
+
+    // ✅ Pisahkan logika GPS ke fungsi sendiri
+    private fun ambilLokasiGps() {
+        if (isLocationManuallySet) return
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) return
 
         fusedLocation.lastLocation.addOnSuccessListener { location ->
-            // ✅ Double-check di dalam callback juga (untuk race condition)
             if (isLocationManuallySet) return@addOnSuccessListener
 
             if (location != null) {
@@ -220,12 +305,12 @@ class LaporanJalanActivity : AppCompatActivity() {
                     }
                 }
             } else {
-                latitude  = 3.5952
+                latitude = 3.5952
                 longitude = 98.6722
-                alamat    = "Jl. Sudirman"
+                alamat = "Jl. Sudirman"
                 runOnUiThread {
                     findViewById<TextView>(R.id.tvAlamat).text = alamat
-                    findViewById<TextView>(R.id.tvKota).text   = "Kota Medan, Sumut"
+                    findViewById<TextView>(R.id.tvKota).text = "Kota Medan, Sumut"
                 }
             }
         }
@@ -287,15 +372,43 @@ class LaporanJalanActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
             REQ_PERMISSION -> {
-                if (grantResults.isNotEmpty() &&
-                    grantResults[0] == PackageManager.PERMISSION_GRANTED
-                ) openKamera()
-                else ToastHelper.showError(this, "Izin kamera diperlukan!")
+                when {
+                    grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
+                        // Diizinkan → buka kamera
+                        openKamera()
+                    }
+                    ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA) -> {
+                        // Deny tapi belum permanen → kasih tahu user
+                        ToastHelper.showError(this, "Izin kamera diperlukan untuk mengambil foto!")
+                    }
+                    else -> {
+                        // Permanently denied → arahkan ke Settings
+                        android.app.AlertDialog.Builder(this)
+                            .setTitle("Izin Kamera Diblokir")
+                            .setMessage("Izin kamera telah ditolak secara permanen. Aktifkan di Pengaturan.")
+                            .setPositiveButton("Buka Pengaturan") { _, _ ->
+                                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", packageName, null)
+                                }
+                                startActivity(intent)
+                            }
+                            .setNegativeButton("Batal", null)
+                            .show()
+                    }
+                }
             }
             103 -> {
-                if (grantResults.isNotEmpty() &&
-                    grantResults[0] == PackageManager.PERMISSION_GRANTED
-                ) getLocation()
+                when {
+                    grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
+                        // Diizinkan → ambil lokasi
+                        ambilLokasiGps()
+                    }
+                    else -> {
+                        // Deny (apapun alasannya) → langsung finish()
+                        ToastHelper.showError(this, "Izin lokasi diperlukan!")
+                        finish()
+                    }
+                }
             }
         }
     }

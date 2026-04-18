@@ -187,9 +187,35 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
         ) {
             googleMap.isMyLocationEnabled = true
         } else {
-            requestPermissions(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1001
-            )
+            when {
+                // Permanently denied → dialog ke Settings (tidak finish karena Fragment)
+                isCameraPermissionEverRequested() &&
+                        !shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
+                    android.app.AlertDialog.Builder(requireContext())
+                        .setTitle("Izin Lokasi Diblokir")
+                        .setMessage("Izin lokasi telah ditolak secara permanen. Aktifkan di Pengaturan untuk melihat posisi kamu di peta.")
+                        .setPositiveButton("Buka Pengaturan") { _, _ ->
+                            val intent = android.content.Intent(
+                                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                            ).apply {
+                                data = android.net.Uri.fromParts("package", requireContext().packageName, null)
+                            }
+                            startActivity(intent)
+                        }
+                        .setNegativeButton("Lanjut Tanpa Lokasi", null)
+                        .show()
+                }
+
+                // Belum pernah diminta / deny sekali → minta izin
+                else -> {
+                    requireContext().getSharedPreferences("smartcity_perm", android.content.Context.MODE_PRIVATE)
+                        .edit().putBoolean("location_requested", true).apply()
+
+                    requestPermissions(
+                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1001
+                    )
+                }
+            }
         }
 
         // Fokus ke Medan
@@ -213,6 +239,12 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
             startPulseAnimation()
             isAnimating = true
         }
+    }
+
+    private fun isCameraPermissionEverRequested(): Boolean {
+        return requireContext()
+            .getSharedPreferences("smartcity_perm", android.content.Context.MODE_PRIVATE)
+            .getBoolean("location_requested", false)
     }
 
     // ===== HEATMAP LOGIC =====
@@ -431,18 +463,44 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
     }
 
     // ===== PERMISSION RESULT =====
-
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
-        if (requestCode == 1001 && grantResults.isNotEmpty() &&
-            grantResults[0] == PackageManager.PERMISSION_GRANTED
-        ) {
-            if (ActivityCompat.checkSelfPermission(
-                    requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                googleMap.isMyLocationEnabled = true
+        if (requestCode == 1001) {
+            when {
+                grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
+                    if (ActivityCompat.checkSelfPermission(
+                            requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        googleMap.isMyLocationEnabled = true
+                    }
+                }
+                // Deny sekali → biarkan saja, peta tetap bisa dipakai tanpa lokasi user
+                shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
+                    Toast.makeText(
+                        requireContext(),
+                        "Lokasi tidak diaktifkan. Kamu tetap bisa melihat peta.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                // Permanently denied → dialog ke Settings
+                else -> {
+                    android.app.AlertDialog.Builder(requireContext())
+                        .setTitle("Izin Lokasi Diblokir")
+                        .setMessage("Izin lokasi telah ditolak secara permanen. Aktifkan di Pengaturan untuk melihat posisi kamu di peta.")
+                        .setPositiveButton("Buka Pengaturan") { _, _ ->
+                            val intent = android.content.Intent(
+                                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                            ).apply {
+                                data = android.net.Uri.fromParts("package", requireContext().packageName, null)
+                            }
+                            startActivity(intent)
+                        }
+                        .setNegativeButton("Lanjut Tanpa Lokasi", null)
+                        .show()
+                }
             }
         }
     }

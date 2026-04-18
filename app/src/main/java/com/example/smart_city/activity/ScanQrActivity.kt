@@ -101,17 +101,49 @@ class ScanQrActivity : AppCompatActivity() {
     }
 
     private fun checkCameraPermissionAndSetup() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.CAMERA),
-                REQ_CAMERA_PERMISSION
-            )
-        } else {
-            setupScanner()
+        when {
+            // Sudah ada izin → langsung setup scanner
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED -> {
+                setupScanner()
+            }
+
+            // Permanently denied → dialog ke Settings lalu finish()
+            isCameraPermissionEverRequested() &&
+                    !ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA) -> {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("Izin Kamera Diblokir")
+                    .setMessage("Izin kamera telah ditolak secara permanen. Aktifkan di Pengaturan aplikasi untuk bisa scan QR.")
+                    .setPositiveButton("Buka Pengaturan") { _, _ ->
+                        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = android.net.Uri.fromParts("package", packageName, null)
+                        }
+                        startActivity(intent)
+                        finish()
+                    }
+                    .setNegativeButton("Batal") { _, _ -> finish() }
+                    .setCancelable(false)
+                    .show()
+            }
+
+            // Belum pernah diminta → minta izin pertama kali
+            else -> {
+                getSharedPreferences("smartcity_perm", MODE_PRIVATE)
+                    .edit().putBoolean("camera_requested", true).apply()
+
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.CAMERA),
+                    REQ_CAMERA_PERMISSION
+                )
+            }
         }
+    }
+
+    // ✅ Tambah helper ini
+    private fun isCameraPermissionEverRequested(): Boolean {
+        return getSharedPreferences("smartcity_perm", MODE_PRIVATE)
+            .getBoolean("camera_requested", false)
     }
 
     override fun onRequestPermissionsResult(
@@ -121,11 +153,31 @@ class ScanQrActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQ_CAMERA_PERMISSION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                setupScanner()
-            } else {
-                ToastHelper.showError(this, "Izin kamera diperlukan untuk scan QR!")
-                finish()
+            when {
+                grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
+                    setupScanner()
+                }
+                // Deny sekali → finish() (sesuai behavior ScanQr)
+                ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA) -> {
+                    ToastHelper.showError(this, "Izin kamera diperlukan untuk scan QR!")
+                    finish()
+                }
+                // Permanently denied → dialog ke Settings
+                else -> {
+                    android.app.AlertDialog.Builder(this)
+                        .setTitle("Izin Kamera Diblokir")
+                        .setMessage("Izin kamera telah ditolak secara permanen. Aktifkan di Pengaturan aplikasi untuk bisa scan QR.")
+                        .setPositiveButton("Buka Pengaturan") { _, _ ->
+                            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = android.net.Uri.fromParts("package", packageName, null)
+                            }
+                            startActivity(intent)
+                            finish()
+                        }
+                        .setNegativeButton("Batal") { _, _ -> finish() }
+                        .setCancelable(false)
+                        .show()
+                }
             }
         }
     }
