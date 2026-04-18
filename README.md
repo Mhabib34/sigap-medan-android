@@ -1,10 +1,4 @@
-<div align="center">
 
-<img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white"/>
-<img src="https://img.shields.io/badge/Language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white"/>
-<img src="https://img.shields.io/badge/Architecture-MVVM%20Clean-FF6B35?style=for-the-badge"/>
-<img src="https://img.shields.io/badge/Status-In%20Development-FFA500?style=for-the-badge"/>
-<img src="https://img.shields.io/badge/Min%20API-26-green?style=for-the-badge"/>
 
 <br/><br/>
 
