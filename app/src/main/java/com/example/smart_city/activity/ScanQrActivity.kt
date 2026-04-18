@@ -49,15 +49,44 @@ class ScanQrActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvInfoScan).text =
             "Scan QR code untuk mendapatkan $poin poin."
 
-        // Input manual → langsung dapat poin (untuk demo)
-//        findViewById<androidx.cardview.widget.CardView>(R.id.tvInputManual.parent as android.view.View? ?: return)
-
         findViewById<TextView>(R.id.tvInputManual).setOnClickListener {
-            prosesQrBerhasil("MANUAL_INPUT")
+            showManualInputDialog()
         }
 
         // Setup ZXing scanner
         checkCameraPermissionAndSetup()
+    }
+
+    private fun showManualInputDialog() {
+        val editText = android.widget.EditText(this).apply {
+            hint = "Masukkan kode QR"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setPadding(48, 32, 48, 32)
+        }
+
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setTitle("Input Kode Manual")
+            .setMessage("Masukkan kode yang tertera di lokasi.")
+            .setView(editText)
+            .setPositiveButton("Konfirmasi") { _, _ ->
+                val kode = editText.text.toString().trim()
+                if (kode.isEmpty()) {
+                    ToastHelper.showError(this, "Kode tidak boleh kosong!")
+                } else {
+                    prosesQrBerhasil(kode)
+                }
+            }
+            .setNegativeButton("Batal", null)
+            .create()
+
+        // Otomatis munculkan keyboard saat dialog terbuka
+        dialog.window?.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+        )
+        dialog.show()
+
+        // Request focus ke EditText supaya keyboard langsung muncul
+        editText.requestFocus()
     }
 
     private fun setupScanner() {
