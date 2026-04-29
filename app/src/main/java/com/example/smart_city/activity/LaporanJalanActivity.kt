@@ -21,7 +21,6 @@ import com.google.android.gms.location.LocationServices
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.get
 
 class LaporanJalanActivity : AppCompatActivity() {
 
@@ -101,35 +100,25 @@ class LaporanJalanActivity : AppCompatActivity() {
             requestPermissionsAndOpenCamera()
         }
 
-        findViewById<Button>(R.id.btnGaleri).setOnClickListener {
-            val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            startActivityForResult(intent, REQ_GALERI)
-        }
-
         findViewById<androidx.cardview.widget.CardView>(R.id.cardFoto).setOnClickListener {
             showFotoOptions()
-        }
-
-        // ✅ Ganti Lokasi → buka LocationPickerActivity
-        findViewById<Button>(R.id.btnGantiLokasi).setOnClickListener {
-            val intent = Intent(this, LocationPickerActivity::class.java).apply {
-                putExtra("current_lat", latitude)
-                putExtra("current_lng", longitude)
-                putExtra("current_alamat", alamat)
-            }
-            startActivityForResult(intent, REQ_LOCATION_PICKER)
         }
 
         findViewById<Button>(R.id.btnKirimLaporan).setOnClickListener {
             kirimLaporan()
         }
 
+        // Tombol refresh lokasi
+        findViewById<Button>(R.id.btnRefreshLokasi).setOnClickListener {
+            isLocationManuallySet = false
+            findViewById<TextView>(R.id.tvGpsStatus).text = "🔄 Mendeteksi..."
+            getLocation()
+            ToastHelper.showSuccess(this, "Lokasi berhasil diperbarui!")
+        }
     }
 
-    // Hapus getLocation() dari onCreate, ganti dengan ini:
     override fun onResume() {
         super.onResume()
-        // Jangan ambil GPS kalau user sudah pilih manual
         if (!isLocationManuallySet) {
             getLocation()
         }
@@ -153,17 +142,14 @@ class LaporanJalanActivity : AppCompatActivity() {
 
     private fun requestPermissionsAndOpenCamera() {
         when {
-            // Sudah ada izin → langsung buka kamera
             ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                     == PackageManager.PERMISSION_GRANTED -> {
                 openKamera()
             }
-
-            // Pernah deny sekali → tampilkan rationale dulu
             ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA) -> {
                 android.app.AlertDialog.Builder(this)
                     .setTitle("Izin Kamera Diperlukan")
-                    .setMessage("Aplikasi membutuhkan akses kamera untuk mengambil foto laporan. Mohon izinkan akses kamera.")
+                    .setMessage("Aplikasi membutuhkan akses kamera untuk mengambil foto laporan.")
                     .setPositiveButton("Izinkan") { _, _ ->
                         ActivityCompat.requestPermissions(
                             this, arrayOf(Manifest.permission.CAMERA), REQ_PERMISSION
@@ -172,12 +158,10 @@ class LaporanJalanActivity : AppCompatActivity() {
                     .setNegativeButton("Batal", null)
                     .show()
             }
-
-            // ✅ Permanently denied → hanya kalau SUDAH pernah diminta sebelumnya
             isCameraPermissionEverRequested() -> {
                 android.app.AlertDialog.Builder(this)
                     .setTitle("Izin Kamera Diblokir")
-                    .setMessage("Izin kamera telah ditolak secara permanen. Silakan aktifkan secara manual di Pengaturan aplikasi.")
+                    .setMessage("Izin kamera telah ditolak secara permanen. Aktifkan di Pengaturan.")
                     .setPositiveButton("Buka Pengaturan") { _, _ ->
                         val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.fromParts("package", packageName, null)
@@ -187,12 +171,9 @@ class LaporanJalanActivity : AppCompatActivity() {
                     .setNegativeButton("Batal", null)
                     .show()
             }
-
-            // ✅ Belum pernah diminta sama sekali → minta izin pertama kali
             else -> {
                 getSharedPreferences("smartcity_perm", MODE_PRIVATE)
                     .edit().putBoolean("camera_requested", true).apply()
-
                 ActivityCompat.requestPermissions(
                     this, arrayOf(Manifest.permission.CAMERA), REQ_PERMISSION
                 )
@@ -200,7 +181,6 @@ class LaporanJalanActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ Tambah helper ini
     private fun isCameraPermissionEverRequested(): Boolean {
         return getSharedPreferences("smartcity_perm", MODE_PRIVATE)
             .getBoolean("camera_requested", false)
@@ -220,18 +200,14 @@ class LaporanJalanActivity : AppCompatActivity() {
         startActivityForResult(intent, REQ_KAMERA)
     }
 
-    // ✅ GANTI fungsi getLocation()
     private fun getLocation() {
         if (isLocationManuallySet) return
 
         when {
-            // Sudah ada izin → ambil lokasi
             ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                     == PackageManager.PERMISSION_GRANTED -> {
                 ambilLokasiGps()
             }
-
-            // Permanently denied → dialog ke Settings lalu finish()
             !ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)
                     && isPermissionEverRequested() -> {
                 android.app.AlertDialog.Builder(this)
@@ -248,13 +224,9 @@ class LaporanJalanActivity : AppCompatActivity() {
                     .setCancelable(false)
                     .show()
             }
-
-            // Belum ada izin → minta izin
             else -> {
-                // Tandai bahwa permission sudah pernah diminta
                 getSharedPreferences("smartcity_perm", MODE_PRIVATE)
                     .edit().putBoolean("location_requested", true).apply()
-
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(
@@ -267,13 +239,11 @@ class LaporanJalanActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ Fungsi helper untuk cek apakah permission pernah diminta sebelumnya
     private fun isPermissionEverRequested(): Boolean {
         return getSharedPreferences("smartcity_perm", MODE_PRIVATE)
             .getBoolean("location_requested", false)
     }
 
-    // ✅ Pisahkan logika GPS ke fungsi sendiri
     private fun ambilLokasiGps() {
         if (isLocationManuallySet) return
 
@@ -285,32 +255,105 @@ class LaporanJalanActivity : AppCompatActivity() {
             if (isLocationManuallySet) return@addOnSuccessListener
 
             if (location != null) {
-                latitude = location.latitude
+                latitude  = location.latitude
                 longitude = location.longitude
+                val akurasi = location.accuracy.toInt()
+
+                // Tampilkan koordinat dulu sebelum geocoder selesai
+                runOnUiThread {
+                    findViewById<TextView>(R.id.tvLatitude).text  = "%.6f° N".format(latitude)
+                    findViewById<TextView>(R.id.tvLongitude).text = "%.6f° E".format(longitude)
+                    findViewById<TextView>(R.id.tvAkurasi).text   = "±${akurasi}m"
+                    findViewById<TextView>(R.id.tvGpsStatus).text = "🔄 Membaca alamat..."
+                }
+
                 try {
-                    val geocoder = Geocoder(this, Locale("id", "ID"))
+                    val geocoder  = Geocoder(this, Locale("id", "ID"))
                     val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+
                     if (!addresses.isNullOrEmpty()) {
                         val addr = addresses[0]
-                        alamat = addr.thoroughfare ?: addr.subLocality ?: "Medan"
-                        val kota = addr.subAdminArea ?: "Kota Medan"
+
+                        // Nama jalan — thoroughfare paling akurat
+                        alamat = addr.thoroughfare
+                            ?: addr.featureName
+                                    ?: addr.subLocality
+                                    ?: "Tidak diketahui"
+
+                        // Kelurahan — subLocality
+                        val kelurahan = addr.subLocality
+                            ?: addr.featureName
+                            ?: "Tidak diketahui"
+
+                        // Kecamatan — locality (BUKAN subAdminArea!)
+                        // Di Indonesia: locality = kecamatan, subAdminArea = kota/kabupaten
+                        val kecamatan = addr.locality
+                            ?: addr.subAdminArea
+                            ?: "Tidak diketahui"
+
+                        // Kota/Kabupaten — subAdminArea
+                        val kotaKabupaten = addr.subAdminArea
+                            ?: addr.adminArea
+                            ?: "Tidak diketahui"
+
+                        // Provinsi — adminArea
+                        val provinsi = addr.adminArea ?: "Sumut"
+
+                        // Kode Pos — postalCode
+                        val kodePos = addr.postalCode ?: "Tidak diketahui"
+
                         runOnUiThread {
-                            findViewById<TextView>(R.id.tvAlamat).text = alamat
-                            findViewById<TextView>(R.id.tvKota).text = "$kota, Sumut"
+                            // Nama jalan + header kota di baris atas kartu
+                            findViewById<TextView>(R.id.tvNamaJalan).text = alamat
+                            findViewById<TextView>(R.id.tvKota).text      = "$kotaKabupaten, $provinsi"
+
+                            // Chip detail
+                            findViewById<TextView>(R.id.tvKelurahan).text  = kelurahan
+                            findViewById<TextView>(R.id.tvKecamatan).text  = kecamatan
+                            findViewById<TextView>(R.id.tvKotaChip).text   = kotaKabupaten
+                            findViewById<TextView>(R.id.tvKodePos).text    = kodePos
+
+                            findViewById<TextView>(R.id.tvGpsStatus).text = "✅ Lokasi didapat"
+                        }
+                    } else {
+                        // Geocoder berhasil tapi tidak ada hasil
+                        runOnUiThread {
+                            findViewById<TextView>(R.id.tvNamaJalan).text  = "Alamat tidak ditemukan"
+                            findViewById<TextView>(R.id.tvKelurahan).text  = "-"
+                            findViewById<TextView>(R.id.tvKecamatan).text  = "-"
+                            findViewById<TextView>(R.id.tvKotaChip).text   = "-"
+                            findViewById<TextView>(R.id.tvKodePos).text    = "-"
+                            findViewById<TextView>(R.id.tvGpsStatus).text  = "⚠️ Alamat kosong"
                         }
                     }
                 } catch (e: Exception) {
+                    // Geocoder error (misal tidak ada koneksi internet)
                     runOnUiThread {
-                        findViewById<TextView>(R.id.tvAlamat).text = "Jl. Medan"
+                        findViewById<TextView>(R.id.tvNamaJalan).text  = "Gagal membaca alamat"
+                        findViewById<TextView>(R.id.tvKelurahan).text  = "-"
+                        findViewById<TextView>(R.id.tvKecamatan).text  = "-"
+                        findViewById<TextView>(R.id.tvKotaChip).text   = "-"
+                        findViewById<TextView>(R.id.tvKodePos).text    = "-"
+                        findViewById<TextView>(R.id.tvGpsStatus).text  = "⚠️ Error: ${e.message}"
                     }
                 }
+
             } else {
-                latitude = 3.5952
+                // lastLocation null — GPS belum siap, gunakan fallback Medan
+                latitude  = 3.5952
                 longitude = 98.6722
-                alamat = "Jl. Sudirman"
+                alamat    = "Jl. Sudirman"
                 runOnUiThread {
-                    findViewById<TextView>(R.id.tvAlamat).text = alamat
-                    findViewById<TextView>(R.id.tvKota).text = "Kota Medan, Sumut"
+                    findViewById<TextView>(R.id.tvNamaJalan).text  = alamat
+                    findViewById<TextView>(R.id.tvKota).text       = "Kota Medan, Sumut"
+                    findViewById<TextView>(R.id.tvKelurahan).text  = "Mendeteksi..."
+                    findViewById<TextView>(R.id.tvKecamatan).text  = "Mendeteksi..."
+                    findViewById<TextView>(R.id.tvKotaChip).text   = "Kota Medan"
+                    findViewById<TextView>(R.id.tvKodePos).text    = "Mendeteksi..."
+                    findViewById<TextView>(R.id.tvLatitude).text   = "3.595200° N"
+                    findViewById<TextView>(R.id.tvLongitude).text  = "98.672200° E"
+                    findViewById<TextView>(R.id.tvAkurasi).text    = "N/A"
+                    findViewById<TextView>(R.id.tvGpsStatus).text  = "⚠️ GPS belum siap, coba refresh"
                 }
             }
         }
@@ -330,7 +373,6 @@ class LaporanJalanActivity : AppCompatActivity() {
                     layoutUpload.visibility = android.view.View.GONE
                 }
             }
-
             REQ_GALERI -> {
                 data?.data?.let { uri ->
                     fotoUri  = uri
@@ -342,24 +384,24 @@ class LaporanJalanActivity : AppCompatActivity() {
                     layoutUpload.visibility = android.view.View.GONE
                 }
             }
-
-            // ✅ Terima hasil dari LocationPickerActivity
             REQ_LOCATION_PICKER -> {
-                // ✅ Set flag PERTAMA sebelum assign nilai apapun
                 isLocationManuallySet = true
 
-                val newLat    = data?.getDoubleExtra("lat", latitude)    ?: latitude
-                val newLng    = data?.getDoubleExtra("lng", longitude)   ?: longitude
-                val newAlamat = data?.getStringExtra("alamat")           ?: alamat
+                val newLat    = data?.getDoubleExtra("lat", latitude)  ?: latitude
+                val newLng    = data?.getDoubleExtra("lng", longitude) ?: longitude
+                val newAlamat = data?.getStringExtra("alamat")         ?: alamat
 
                 latitude  = newLat
                 longitude = newLng
                 alamat    = newAlamat
 
                 runOnUiThread {
-                    findViewById<TextView>(R.id.tvAlamat).text = newAlamat
-                    // Update tvKota juga supaya konsisten
-                    findViewById<TextView>(R.id.tvKota).text = "Lokasi dipilih manual"
+                    findViewById<TextView>(R.id.tvNamaJalan).text  = newAlamat
+                    findViewById<TextView>(R.id.tvKota).text       = "Lokasi dipilih manual"
+                    findViewById<TextView>(R.id.tvKotaChip).text   = "Manual"
+                    findViewById<TextView>(R.id.tvLatitude).text   = "%.6f° N".format(newLat)
+                    findViewById<TextView>(R.id.tvLongitude).text  = "%.6f° E".format(newLng)
+                    findViewById<TextView>(R.id.tvGpsStatus).text  = "📌 Manual"
                 }
                 Toast.makeText(this, "📍 Lokasi diperbarui!", Toast.LENGTH_SHORT).show()
             }
@@ -374,15 +416,12 @@ class LaporanJalanActivity : AppCompatActivity() {
             REQ_PERMISSION -> {
                 when {
                     grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
-                        // Diizinkan → buka kamera
                         openKamera()
                     }
                     ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA) -> {
-                        // Deny tapi belum permanen → kasih tahu user
                         ToastHelper.showError(this, "Izin kamera diperlukan untuk mengambil foto!")
                     }
                     else -> {
-                        // Permanently denied → arahkan ke Settings
                         android.app.AlertDialog.Builder(this)
                             .setTitle("Izin Kamera Diblokir")
                             .setMessage("Izin kamera telah ditolak secara permanen. Aktifkan di Pengaturan.")
@@ -400,11 +439,9 @@ class LaporanJalanActivity : AppCompatActivity() {
             103 -> {
                 when {
                     grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
-                        // Diizinkan → ambil lokasi
                         ambilLokasiGps()
                     }
                     else -> {
-                        // Deny (apapun alasannya) → langsung finish()
                         ToastHelper.showError(this, "Izin lokasi diperlukan!")
                         finish()
                     }
@@ -421,7 +458,8 @@ class LaporanJalanActivity : AppCompatActivity() {
         val catatan = findViewById<EditText>(R.id.etCatatan).text.toString().trim()
 
         val berhasil = db.simpanLaporan(
-            userId, judul, catatan, fotoPath, alamat, latitude, longitude
+            userId, judul, catatan, fotoPath, alamat, latitude, longitude,
+            kategori  // ← kirim kategori yang sudah diterima dari intent
         )
         if (berhasil) {
             val poinDapat = db.selesaikanMisi(userId, misiId)

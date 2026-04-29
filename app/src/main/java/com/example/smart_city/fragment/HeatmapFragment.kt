@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -19,7 +20,6 @@ import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.smart_city.R
 import com.example.smart_city.helper.DatabaseHelper
-import com.example.smart_city.manager.UserXpManager
 import com.example.smart_city.model.CityReport
 import com.example.smart_city.model.DummyData
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -37,15 +37,18 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
     private val markerList = mutableListOf<Marker>()
     private val markerReportMap = mutableMapOf<String, CityReport>()
 
-    // Radius cluster dalam derajat (~200 meter)
     private val CLUSTER_RADIUS = 0.003
-
-    // Pulse animation state
     private val handler = Handler(Looper.getMainLooper())
     private var pulseExpand = true
     private var isAnimating = false
 
     private lateinit var db: DatabaseHelper
+
+    // Ambil userId dari SharedPreferences — dibutuhkan untuk cek sudah vote atau belum
+    private val userId: Int
+        get() = requireContext()
+            .getSharedPreferences("smartcity_session", android.content.Context.MODE_PRIVATE)
+            .getInt("user_id", 0)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -61,26 +64,28 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
 
         updateStatsCard(view)
 
+        // FAB Legenda
         view.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(
             R.id.fabFilter
-        )?.setOnClickListener {
-            showLegendDialog()
-        }
+        )?.setOnClickListener { showLegendDialog() }
+
+        // FAB Lokasi Saya (custom, menggantikan tombol bawaan Maps)
+        view.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(
+            R.id.fabMyLocation
+        )?.setOnClickListener { moveToMyLocation() }
     }
 
-    private fun updateStatsCard(view: View) {
-        val allReports = getAllReports()
-        val totalReports = allReports.size
-        val dailyGoal = 20
+    // ==================== STATS CARD ====================
 
-        // ── City Impact Score ──────────────────────────────────────────
-        // Rata-rata severity semua laporan, diskala ke 0–100
+    private fun updateStatsCard(view: View) {
+        val allReports  = getAllReports()
+        val totalReports = allReports.size
+        val dailyGoal   = 20
+
         val avgSeverity = if (allReports.isEmpty()) 0.0
         else allReports.map { it.severity }.average()
         val impactScore = ((avgSeverity / 10.0) * 100).toInt().coerceIn(0, 100)
 
-        // ── +X% badge ─────────────────────────────────────────────────
-        // Bandingkan laporan DB hari ini vs kemarin
         val hariIni  = db.getLaporanHariIni()
         val kemarin  = db.getLaporanKemarin()
         val trendText = when {
@@ -92,51 +97,45 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
             }
         }
 
-        // ── Progress bar ───────────────────────────────────────────────
         val progress = ((totalReports.toFloat() / dailyGoal) * 100)
             .coerceIn(0f, 100f).toInt()
 
-        // ── Bind ke view ───────────────────────────────────────────────
         view.findViewById<TextView>(R.id.tvImpactScore)?.text   = impactScore.toString()
         view.findViewById<TextView>(R.id.tvReportCount)?.text   = "$totalReports LAPORAN"
         view.findViewById<ProgressBar>(R.id.progressImpact)?.progress = progress
-
-        // Trend badge — cari TextView yang sekarang hardcode "↑ +5%"
-        // Tambahkan id di XML-nya: android:id="@+id/tvTrend"
         view.findViewById<TextView>(R.id.tvTrend)?.apply {
             text = trendText
             setTextColor(
                 if (trendText.startsWith("↓"))
-                    android.graphics.Color.parseColor("#E8541A")   // merah kalau turun
+                    android.graphics.Color.parseColor("#E8541A")
                 else
-                    android.graphics.Color.parseColor("#1D9E75")   // hijau kalau naik/netral
+                    android.graphics.Color.parseColor("#1D9E75")
             )
         }
     }
 
-    // Helper: konversi row DB laporan → CityReport
+    // ==================== DATA ====================
+
     private fun dbRowToCityReport(row: Map<String, String>): CityReport? {
         val lat = row["lat"]?.toDoubleOrNull() ?: return null
         val lng = row["lng"]?.toDoubleOrNull() ?: return null
-        // Tentukan severity & type berdasarkan judul (heuristik sederhana)
         val judul = row["judul"] ?: return null
         val (type, severity) = when {
             judul.contains("jalan", ignoreCase = true) ||
                     judul.contains("berlubang", ignoreCase = true) ||
-                    judul.contains("aspal", ignoreCase = true)   -> "Kerusakan Jalan" to 7
-            judul.contains("sampah", ignoreCase = true)  -> "Sampah" to 5
-            judul.contains("banjir", ignoreCase = true)  -> "Banjir" to 8
+                    judul.contains("aspal", ignoreCase = true)     -> "Kerusakan Jalan" to 7
+            judul.contains("sampah", ignoreCase = true)            -> "Sampah" to 5
+            judul.contains("banjir", ignoreCase = true)            -> "Banjir" to 8
             judul.contains("macet", ignoreCase = true) ||
                     judul.contains("kemacetan", ignoreCase = true) -> "Kemacetan" to 6
             judul.contains("listrik", ignoreCase = true) ||
-                    judul.contains("lampu", ignoreCase = true)   -> "Listrik" to 4
-            judul.contains("pohon", ignoreCase = true)   -> "Kedaruratan" to 7
-            else                                         -> "Laporan Warga" to 5
+                    judul.contains("lampu", ignoreCase = true)     -> "Listrik" to 4
+            judul.contains("pohon", ignoreCase = true)             -> "Kedaruratan" to 7
+            else                                                   -> "Laporan Warga" to 5
         }
-        // Hitung waktu relatif dari tanggal
         val tanggal = row["tanggal"] ?: ""
         val lastUpdated = try {
-            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+            val sdf  = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
             val date = sdf.parse(tanggal)
             val diff = System.currentTimeMillis() - (date?.time ?: 0L)
             val menit = diff / 60000
@@ -153,7 +152,7 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
             type         = type,
             lat          = lat,
             lng          = lng,
-            impactPoints = row["lat"]?.let { 30 } ?: 30, // default 30 XP untuk laporan user
+            impactPoints = 30,
             severity     = severity,
             imageUrl     = row["foto"] ?: "https://picsum.photos/seed/user${row["id"]}/300/200",
             address      = row["lokasi"] ?: "Medan",
@@ -161,26 +160,22 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
         )
     }
 
-    // Ambil gabungan semua report (Dummy + DB)
     private fun getAllReports(): List<CityReport> {
-        val dbReports = db.getAllLaporan()
-            .mapNotNull { dbRowToCityReport(it) }
-        // Gabungkan; DB reports ditaruh di depan agar lebih prioritas
+        val dbReports = db.getAllLaporan().mapNotNull { dbRowToCityReport(it) }
         return dbReports + DummyData.reports
     }
 
+    // ==================== MAP READY ====================
+
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
-
-        // UI Settings
         googleMap.uiSettings.apply {
-            isZoomControlsEnabled = false
-            isMyLocationButtonEnabled = true
-            isMapToolbarEnabled = false
-            isCompassEnabled = false
+            isZoomControlsEnabled     = false
+            isMyLocationButtonEnabled = false  // ← matikan tombol bawaan
+            isMapToolbarEnabled       = false
+            isCompassEnabled          = false
         }
 
-        // Aktifkan lokasi jika ada permission
         if (ActivityCompat.checkSelfPermission(
                 requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
@@ -188,66 +183,48 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
             googleMap.isMyLocationEnabled = true
         } else {
             when {
-                // Permanently denied → dialog ke Settings (tidak finish karena Fragment)
                 isCameraPermissionEverRequested() &&
                         !shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
                     android.app.AlertDialog.Builder(requireContext())
                         .setTitle("Izin Lokasi Diblokir")
-                        .setMessage("Izin lokasi telah ditolak secara permanen. Aktifkan di Pengaturan untuk melihat posisi kamu di peta.")
+                        .setMessage("Aktifkan di Pengaturan untuk melihat posisi kamu di peta.")
                         .setPositiveButton("Buka Pengaturan") { _, _ ->
-                            val intent = android.content.Intent(
+                            startActivity(android.content.Intent(
                                 android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                             ).apply {
                                 data = android.net.Uri.fromParts("package", requireContext().packageName, null)
-                            }
-                            startActivity(intent)
+                            })
                         }
                         .setNegativeButton("Lanjut Tanpa Lokasi", null)
                         .show()
                 }
-
-                // Belum pernah diminta / deny sekali → minta izin
                 else -> {
                     requireContext().getSharedPreferences("smartcity_perm", android.content.Context.MODE_PRIVATE)
                         .edit().putBoolean("location_requested", true).apply()
-
-                    requestPermissions(
-                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1001
-                    )
+                    requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1001)
                 }
             }
         }
 
-        // Fokus ke Medan
         val medan = LatLng(3.5952, 98.6722)
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(medan, 13f))
 
-        // Gambar heatmap & markers
         drawHeatmap()
         addMarkers()
 
-        // Handle tap marker → tampilkan bottom sheet
         googleMap.setOnMarkerClickListener { marker ->
-            markerReportMap[marker.id]?.let { report ->
-                showBottomSheet(report)
-            }
+            markerReportMap[marker.id]?.let { report -> showBottomSheet(report) }
             true
         }
 
-        // Animasi pulse
-        if (!isAnimating) {
-            startPulseAnimation()
-            isAnimating = true
-        }
+        if (!isAnimating) { startPulseAnimation(); isAnimating = true }
     }
 
-    private fun isCameraPermissionEverRequested(): Boolean {
-        return requireContext()
-            .getSharedPreferences("smartcity_perm", android.content.Context.MODE_PRIVATE)
+    private fun isCameraPermissionEverRequested(): Boolean =
+        requireContext().getSharedPreferences("smartcity_perm", android.content.Context.MODE_PRIVATE)
             .getBoolean("location_requested", false)
-    }
 
-    // ===== HEATMAP LOGIC =====
+    // ==================== HEATMAP ====================
 
     private fun drawHeatmap() {
         circleOverlays.forEach { it.remove() }
@@ -258,36 +235,22 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
 
         for (i in reports.indices) {
             if (visited[i]) continue
-
             val cluster = mutableListOf(reports[i])
             for (j in i + 1 until reports.size) {
                 if (!visited[j] && isNearby(reports[i], reports[j])) {
-                    cluster.add(reports[j])
-                    visited[j] = true
+                    cluster.add(reports[j]); visited[j] = true
                 }
             }
             visited[i] = true
 
             val centerLat = cluster.map { it.lat }.average()
             val centerLng = cluster.map { it.lng }.average()
-            val count = cluster.size
+            val count     = cluster.size
 
             val (fillColor, strokeColor, radius) = when {
-                count >= 6 -> Triple(
-                    Color.argb(80, 232, 84, 26),
-                    Color.argb(180, 232, 84, 26),
-                    350.0
-                )
-                count >= 3 -> Triple(
-                    Color.argb(80, 245, 196, 0),
-                    Color.argb(180, 245, 196, 0),
-                    280.0
-                )
-                else -> Triple(
-                    Color.argb(80, 29, 158, 117),
-                    Color.argb(180, 29, 158, 117),
-                    200.0
-                )
+                count >= 6 -> Triple(Color.argb(80, 232, 84, 26),  Color.argb(180, 232, 84, 26),  350.0)
+                count >= 3 -> Triple(Color.argb(80, 245, 196, 0),  Color.argb(180, 245, 196, 0),  280.0)
+                else       -> Triple(Color.argb(80, 29, 158, 117), Color.argb(180, 29, 158, 117), 200.0)
             }
 
             val circle = googleMap.addCircle(
@@ -303,12 +266,11 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun isNearby(a: CityReport, b: CityReport): Boolean {
-        val dlat = a.lat - b.lat
-        val dlng = a.lng - b.lng
+        val dlat = a.lat - b.lat; val dlng = a.lng - b.lng
         return sqrt(dlat * dlat + dlng * dlng) < CLUSTER_RADIUS
     }
 
-    // ===== MARKERS =====
+    // ==================== MARKERS ====================
 
     private fun addMarkers() {
         markerList.forEach { it.remove() }
@@ -316,19 +278,15 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
         markerReportMap.clear()
 
         getAllReports().forEach { report ->
-            val icon = getMarkerIcon(report.severity)
             val marker = googleMap.addMarker(
                 MarkerOptions()
                     .position(LatLng(report.lat, report.lng))
                     .title(report.title)
-                    .icon(icon)
+                    .icon(getMarkerIcon(report.severity))
                     .anchor(0.5f, 0.5f)
                     .snippet(report.address)
             )
-            marker?.let {
-                markerList.add(it)
-                markerReportMap[it.id] = report
-            }
+            marker?.let { markerList.add(it); markerReportMap[it.id] = report }
         }
     }
 
@@ -336,20 +294,19 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
         val hue = when {
             severity >= 7 -> BitmapDescriptorFactory.HUE_RED
             severity >= 4 -> BitmapDescriptorFactory.HUE_YELLOW
-            else -> BitmapDescriptorFactory.HUE_GREEN
+            else          -> BitmapDescriptorFactory.HUE_GREEN
         }
         return BitmapDescriptorFactory.defaultMarker(hue)
     }
 
-    // ===== PULSE ANIMATION =====
+    // ==================== PULSE ====================
 
     private fun startPulseAnimation() {
         handler.postDelayed(object : Runnable {
             override fun run() {
                 if (!isAdded) return
                 circleOverlays.forEach { circle ->
-                    val currentRadius = circle.radius
-                    circle.radius = if (pulseExpand) currentRadius * 1.04 else currentRadius * (1.0 / 1.04)
+                    circle.radius = if (pulseExpand) circle.radius * 1.04 else circle.radius * (1.0 / 1.04)
                 }
                 pulseExpand = !pulseExpand
                 handler.postDelayed(this, 1200)
@@ -363,18 +320,17 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
         isAnimating = false
     }
 
-    // ===== BOTTOM SHEET =====
+    // ==================== BOTTOM SHEET DETAIL + VOTE ====================
 
     private fun showBottomSheet(report: CityReport) {
-        val dialog = BottomSheetDialog(requireContext(), R.style.BottomSheetDialogTheme)
+        val dialog    = BottomSheetDialog(requireContext(), R.style.BottomSheetDialogTheme)
         val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_report, null)
 
-        // Isi data (tidak berubah)
-        sheetView.findViewById<TextView>(R.id.tvReportTitle).text = report.title
-        sheetView.findViewById<TextView>(R.id.tvReportType).text = report.type
+        // Bind info dasar
+        sheetView.findViewById<TextView>(R.id.tvReportTitle).text   = report.title
+        sheetView.findViewById<TextView>(R.id.tvReportType).text    = report.type
         sheetView.findViewById<TextView>(R.id.tvReportAddress).text = report.address
-        sheetView.findViewById<TextView>(R.id.tvXpBadge).text = "+${report.impactPoints} XP"
-        sheetView.findViewById<TextView>(R.id.tvLastUpdated).text =
+        sheetView.findViewById<TextView>(R.id.tvLastUpdated).text   =
             "Terakhir diperbarui: ${report.lastUpdated}"
 
         Glide.with(this)
@@ -383,59 +339,75 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
             .centerCrop()
             .into(sheetView.findViewById<ImageView>(R.id.ivReportImage))
 
-        // ===== UPVOTE LOGIC =====
-        val btnUpvote = sheetView.findViewById<Button>(R.id.btnUpvote)
-        val alreadyUpvoted = UserXpManager.hasUpvoted(requireContext(), report.id)
+        val tvVoteCount = sheetView.findViewById<TextView>(R.id.tvVoteCount)
+        val btnUpvote   = sheetView.findViewById<Button>(R.id.btnUpvote)
+        val btnDetails  = sheetView.findViewById<Button>(R.id.btnDetails)
 
-        if (alreadyUpvoted) {
-            // Tampilkan state sudah di-upvote
-            btnUpvote.text = "✓ UPVOTED"
-            btnUpvote.isEnabled = false
-            btnUpvote.alpha = 0.5f
-        }
-
-        btnUpvote.setOnClickListener {
-            if (UserXpManager.hasUpvoted(requireContext(), report.id)) {
-                Toast.makeText(requireContext(), "Kamu sudah upvote laporan ini.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+        // Helper: sembunyikan tombol dukung & buat tombol detail full width
+        fun setSudahDukung() {
+            btnUpvote.visibility = View.GONE
+            // Hapus margin kiri yang tadinya untuk jarak antar tombol
+            (btnDetails.layoutParams as LinearLayout.LayoutParams).apply {
+                marginStart = 0
             }
-
-            // Simpan upvote & tambah XP
-            UserXpManager.markUpvoted(requireContext(), report.id)
-            UserXpManager.addXp(requireContext(), report.impactPoints)
-
-            val totalXp = UserXpManager.getTotalXp(requireContext())
-            Toast.makeText(
-                requireContext(),
-                "✅ Upvote berhasil! +${report.impactPoints} XP  |  Total XP: $totalXp",
-                Toast.LENGTH_SHORT
-            ).show()
-
-            // Update tampilan tombol
-            btnUpvote.text = "✓ UPVOTED"
-            btnUpvote.isEnabled = false
-            btnUpvote.alpha = 0.5f
-
-            dialog.dismiss()
+            btnDetails.requestLayout()
         }
 
-        // Tombol DETAILS (tidak berubah)
-        sheetView.findViewById<Button>(R.id.btnDetails).setOnClickListener {
-            Toast.makeText(requireContext(), "📋 Detail: ${report.title}", Toast.LENGTH_SHORT).show()
+        // Load data vote di background
+        Thread {
+            val jumlahVote  = db.getJumlahVote(report.id)
+            val sudahUpvote = db.sudahVote(report.id, userId)
+
+            requireActivity().runOnUiThread {
+                tvVoteCount.text = "👍 $jumlahVote"
+                if (sudahUpvote) setSudahDukung()
+            }
+        }.start()
+
+        // Klik DUKUNG
+        btnUpvote.setOnClickListener {
+            Thread {
+                val berhasil = db.tambahVote(report.id, userId)
+
+                requireActivity().runOnUiThread {
+                    if (berhasil) {
+                        val jumlahBaru = db.getJumlahVote(report.id)
+                        tvVoteCount.text = "👍 $jumlahBaru"
+                        setSudahDukung()
+
+                        Toast.makeText(
+                            requireContext(),
+                            "Dukungan kamu tercatat!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            "Kamu sudah mendukung laporan ini.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }.start()
+        }
+
+        // Tombol DETAIL
+        btnDetails.setOnClickListener {
+            Toast.makeText(requireContext(), "Detail: ${report.title}", Toast.LENGTH_SHORT).show()
         }
 
         dialog.setContentView(sheetView)
         dialog.show()
     }
-    // ===== LEGEND DIALOG =====
+
+    // ==================== LEGEND ====================
 
     private fun showLegendDialog() {
         val dialog = BottomSheetDialog(requireContext())
-        val view = layoutInflater.inflate(R.layout.bottom_sheet_legend, null)
+        val view   = layoutInflater.inflate(R.layout.bottom_sheet_legend, null)
 
-        // Siapkan data
         val allReportsRaw = db.getAllLaporan()
-        val allDummyRaw = DummyData.reports.map {
+        val allDummyRaw   = DummyData.reports.map {
             mapOf("lat" to it.lat.toString(), "lng" to it.lng.toString())
         }
         val combined = allReportsRaw + allDummyRaw
@@ -443,64 +415,74 @@ class HeatmapFragment : Fragment(), OnMapReadyCallback {
         val (thresholdKritis, thresholdSedang) = db.getThresholds(combined)
         val (jumlahKritis, jumlahSedang, jumlahRendah) = db.getClusterStats(combined)
 
-        // Bind ke TextView di XML
-        view.findViewById<TextView>(R.id.tvLabelKritis)?.text =
-            "Kritis (≥$thresholdKritis laporan)"
-        view.findViewById<TextView>(R.id.tvLabelSedang)?.text =
-            "Sedang ($thresholdSedang–${thresholdKritis - 1} laporan)"
-        view.findViewById<TextView>(R.id.tvLabelRendah)?.text =
-            "Rendah (1–${thresholdSedang - 1} laporan)"
-
-        view.findViewById<TextView>(R.id.tvSubKritis)?.text =
-            "$jumlahKritis klaster aktif"
-        view.findViewById<TextView>(R.id.tvSubSedang)?.text =
-            "$jumlahSedang klaster aktif"
-        view.findViewById<TextView>(R.id.tvSubRendah)?.text =
-            "$jumlahRendah klaster aktif"
+        view.findViewById<TextView>(R.id.tvLabelKritis)?.text = "Kritis (≥$thresholdKritis laporan)"
+        view.findViewById<TextView>(R.id.tvLabelSedang)?.text = "Sedang ($thresholdSedang–${thresholdKritis - 1} laporan)"
+        view.findViewById<TextView>(R.id.tvLabelRendah)?.text = "Rendah (1–${thresholdSedang - 1} laporan)"
+        view.findViewById<TextView>(R.id.tvSubKritis)?.text   = "$jumlahKritis klaster aktif"
+        view.findViewById<TextView>(R.id.tvSubSedang)?.text   = "$jumlahSedang klaster aktif"
+        view.findViewById<TextView>(R.id.tvSubRendah)?.text   = "$jumlahRendah klaster aktif"
 
         dialog.setContentView(view)
         dialog.show()
     }
 
-    // ===== PERMISSION RESULT =====
+    // ==================== PERMISSION ====================
+
     @Suppress("OVERRIDE_DEPRECATION")
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
-        if (requestCode == 1001) {
-            when {
-                grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
-                    if (ActivityCompat.checkSelfPermission(
-                            requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        googleMap.isMyLocationEnabled = true
+        if (requestCode != 1001) return
+        when {
+            grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
+                if (ActivityCompat.checkSelfPermission(
+                        requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) googleMap.isMyLocationEnabled = true
+            }
+            shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
+                Toast.makeText(requireContext(),
+                    "Lokasi tidak diaktifkan. Kamu tetap bisa melihat peta.",
+                    Toast.LENGTH_SHORT).show()
+            }
+            else -> {
+                android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Izin Lokasi Diblokir")
+                    .setMessage("Aktifkan di Pengaturan untuk melihat posisi kamu di peta.")
+                    .setPositiveButton("Buka Pengaturan") { _, _ ->
+                        startActivity(android.content.Intent(
+                            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                        ).apply {
+                            data = android.net.Uri.fromParts("package", requireContext().packageName, null)
+                        })
                     }
-                }
-                // Deny sekali → biarkan saja, peta tetap bisa dipakai tanpa lokasi user
-                shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
-                    Toast.makeText(
-                        requireContext(),
-                        "Lokasi tidak diaktifkan. Kamu tetap bisa melihat peta.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                // Permanently denied → dialog ke Settings
-                else -> {
-                    android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Izin Lokasi Diblokir")
-                        .setMessage("Izin lokasi telah ditolak secara permanen. Aktifkan di Pengaturan untuk melihat posisi kamu di peta.")
-                        .setPositiveButton("Buka Pengaturan") { _, _ ->
-                            val intent = android.content.Intent(
-                                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                            ).apply {
-                                data = android.net.Uri.fromParts("package", requireContext().packageName, null)
-                            }
-                            startActivity(intent)
-                        }
-                        .setNegativeButton("Lanjut Tanpa Lokasi", null)
-                        .show()
-                }
+                    .setNegativeButton("Lanjut Tanpa Lokasi", null)
+                    .show()
+            }
+        }
+    }
+
+    private fun moveToMyLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Toast.makeText(requireContext(),
+                "Izin lokasi belum diberikan.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val fusedLocation = com.google.android.gms.location.LocationServices
+            .getFusedLocationProviderClient(requireContext())
+
+        fusedLocation.lastLocation.addOnSuccessListener { location ->
+            if (!isAdded) return@addOnSuccessListener
+            if (location != null) {
+                val latLng = LatLng(location.latitude, location.longitude)
+                googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+            } else {
+                Toast.makeText(requireContext(),
+                    "Lokasi belum terdeteksi, coba lagi.", Toast.LENGTH_SHORT).show()
             }
         }
     }

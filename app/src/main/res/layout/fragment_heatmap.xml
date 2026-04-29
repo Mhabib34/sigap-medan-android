@@ -108,7 +108,7 @@
                     android:progressBackgroundTint="#EEEEEE"/>
             </LinearLayout>
 
-            <!-- Right: Badge +5% -->
+            <!-- Right: Trend Badge -->
             <TextView
                 android:id="@+id/tvTrend"
                 android:layout_width="wrap_content"
@@ -126,18 +126,40 @@
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- FAB Filter/Legend (kanan bawah) -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabFilter"
+    <!-- FAB Stack: kanan bawah, susun vertikal -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         android:layout_margin="16dp"
         android:layout_marginBottom="80dp"
-        android:src="@android:drawable/ic_dialog_map"
-        android:contentDescription="Lihat Legenda"
-        app:backgroundTint="#E8541A"
-        app:tint="@android:color/white"
-        app:fabSize="normal"/>
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <!-- FAB Lokasi Saya (atas) -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabMyLocation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:src="@android:drawable/ic_menu_mylocation"
+            android:contentDescription="Lokasi Saya"
+            app:backgroundTint="#FFFFFF"
+            app:tint="#E8541A"
+            app:fabSize="mini"
+            app:elevation="4dp"/>
+
+        <!-- FAB Legenda (bawah) -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabFilter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_dialog_map"
+            android:contentDescription="Lihat Legenda"
+            app:backgroundTint="#E8541A"
+            app:tint="@android:color/white"
+            app:fabSize="normal"/>
+
+    </LinearLayout>
 
 </FrameLayout>
