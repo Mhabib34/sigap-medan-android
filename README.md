@@ -261,6 +261,6 @@ This project is developed for academic and competition purposes under **Universi
 
 Made with ❤️ for the people of Medan City
 
-**SIGAP MEDAN** · *Platform Kota Cerdas Medan*
+**SIGAP MEDAN** · *Platform Cerdas Kota Medan*
 
 </div>
