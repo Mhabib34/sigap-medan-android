@@ -239,7 +239,7 @@ Black Box Testing was also performed on **14 functional scenarios** including au
 
 ## 👥 Team
 
-**Team Name:** Mobile Gang (MBG)  
+**Team Name:** MoBile Gang (MBG)  
 **Institution:** Universitas Potensi Utama Medan — Rekayasa Perangkat Lunak
 
 | Role | Name |
@@ -247,6 +247,7 @@ Black Box Testing was also performed on **14 functional scenarios** including au
 | 👑 Team Lead | Muhammad Habib |
 | 👨‍💻 Member | Ahmad Fauzi |
 | 👨‍💻 Member | Muhammad Fahmi Syah Putra |
+| 👨‍💻 Member | Nanda Rizki |
 
 ---
 
@@ -260,6 +261,6 @@ This project is developed for academic and competition purposes under **Universi
 
 Made with ❤️ for the people of Medan City
 
-**SIGAP MEDAN** · *Platform Kota Cerdas Medan*
+**SIGAP MEDAN** · *Platform Cerdas Kota Medan*
 
 </div>
