@@ -9,9 +9,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     companion object {
         const val DATABASE_NAME = "smartcity.db"
-        const val DATABASE_VERSION = 5  // ← naik dari 4 ke 5
+        const val DATABASE_VERSION = 5
 
-        // Tabel User
         const val TABLE_USER = "users"
         const val COL_ID = "id"
         const val COL_NAMA = "nama"
@@ -21,7 +20,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COL_POIN = "poin"
         const val COL_LEVEL = "level"
 
-        // Tabel Riwayat Poin
         const val TABLE_POIN = "riwayat_poin"
         const val COL_POIN_ID = "id"
         const val COL_POIN_USER_ID = "user_id"
@@ -30,7 +28,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COL_POIN_KATEGORI = "kategori"
         const val COL_POIN_TANGGAL = "tanggal"
 
-        // Tabel Misi
         const val TABLE_MISI = "misi"
         const val COL_MISI_ID = "id"
         const val COL_MISI_JUDUL = "judul"
@@ -40,14 +37,12 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COL_MISI_WARNA = "warna"
         const val COL_MISI_KATEGORI = "kategori"
 
-        // Tabel Misi User
         const val TABLE_MISI_USER = "misi_user"
         const val COL_MU_ID = "id"
         const val COL_MU_USER_ID = "user_id"
         const val COL_MU_MISI_ID = "misi_id"
         const val COL_MU_TANGGAL = "tanggal"
 
-        // Tabel Laporan
         const val TABLE_LAPORAN = "laporan"
         const val COL_LAP_ID = "id"
         const val COL_LAP_USER_ID = "user_id"
@@ -60,7 +55,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COL_LAP_KATEGORI = "kategori"
         const val COL_LAP_TANGGAL = "tanggal"
 
-        // Tabel Hadiah
         const val TABLE_HADIAH = "hadiah"
         const val COL_HAD_ID = "id"
         const val COL_HAD_NAMA = "nama"
@@ -70,7 +64,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COL_HAD_GAMBAR_URL = "gambar_url"
         const val COL_HAD_STOK = "stok"
 
-        // Tabel Penukaran
         const val TABLE_TUKAR = "penukaran"
         const val COL_TUK_ID = "id"
         const val COL_TUK_USER_ID = "user_id"
@@ -78,7 +71,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COL_TUK_POIN = "poin_digunakan"
         const val COL_TUK_TANGGAL = "tanggal"
 
-        // Tabel Badge
         const val TABLE_BADGE = "badge"
         const val COL_BAD_ID = "id"
         const val COL_BAD_NAMA = "nama"
@@ -87,19 +79,16 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COL_BAD_SYARAT_KATEGORI = "syarat_kategori"
         const val COL_BAD_SYARAT_JUMLAH = "syarat_jumlah"
 
-        // Tabel Badge User
         const val TABLE_BADGE_USER = "badge_user"
         const val COL_BU_ID = "id"
         const val COL_BU_USER_ID = "user_id"
         const val COL_BU_BADGE_ID = "badge_id"
         const val COL_BU_TANGGAL = "tanggal"
 
-        // ── Tabel Votes ──────────────────────────────────────────────────
-        // report_id = "db_123" untuk laporan DB, atau ID dummy dari DummyData
         const val TABLE_VOTES = "votes"
         const val COL_VOT_ID = "id"
-        const val COL_VOT_REPORT_ID = "report_id"   // TEXT, misal "db_5" atau "dummy_3"
-        const val COL_VOT_USER_ID = "user_id"        // INT, user yang vote
+        const val COL_VOT_REPORT_ID = "report_id"
+        const val COL_VOT_USER_ID = "user_id"
         const val COL_VOT_TANGGAL = "tanggal"
 
         fun getLevelFromPoin(poin: Int): String {
@@ -232,7 +221,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             )
         """.trimIndent())
 
-        // ── Tabel Votes (baru) ─────────────────────────────────────────
         db.execSQL("""
             CREATE TABLE $TABLE_VOTES (
                 $COL_VOT_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -252,13 +240,11 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 6) {
-            // Tambah kolom kategori ke tabel laporan yang sudah ada
             db.execSQL("""
             ALTER TABLE $TABLE_LAPORAN
             ADD COLUMN $COL_LAP_KATEGORI TEXT DEFAULT 'laporan'
         """.trimIndent())
 
-            // Kalau upgrade dari < 5, tambah tabel votes juga
             if (oldVersion < 5) {
                 db.execSQL("""
                 CREATE TABLE IF NOT EXISTS $TABLE_VOTES (
@@ -272,7 +258,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             }
             return
         }
-        // Full recreate untuk versi lain
         db.execSQL("DROP TABLE IF EXISTS $TABLE_VOTES")
         db.execSQL("DROP TABLE IF EXISTS $TABLE_BADGE_USER")
         db.execSQL("DROP TABLE IF EXISTS $TABLE_BADGE")
@@ -288,10 +273,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     // ==================== VOTES ====================
 
-    /**
-     * Tambah vote dari userId untuk reportId.
-     * @return true jika berhasil, false jika sudah pernah vote (UNIQUE constraint)
-     */
     fun tambahVote(reportId: String, userId: Int): Boolean {
         val db = writableDatabase
         val tanggal = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
@@ -308,9 +289,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         return result != -1L
     }
 
-    /**
-     * Cek apakah userId sudah vote untuk reportId.
-     */
     fun sudahVote(reportId: String, userId: Int): Boolean {
         val db = readableDatabase
         val cursor = db.query(
@@ -326,9 +304,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         return sudah
     }
 
-    /**
-     * Ambil total jumlah vote untuk satu reportId.
-     */
     fun getJumlahVote(reportId: String): Int {
         val db = readableDatabase
         val cursor = db.rawQuery(
@@ -342,10 +317,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         return count
     }
 
-    /**
-     * Ambil jumlah vote untuk banyak reportId sekaligus (efisien, 1 query).
-     * @return Map<reportId, jumlahVote>
-     */
     fun getJumlahVoteBatch(reportIds: List<String>): Map<String, Int> {
         if (reportIds.isEmpty()) return emptyMap()
         val db = readableDatabase
@@ -365,7 +336,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         }
         cursor.close()
         db.close()
-        // Isi 0 untuk report yang belum ada vote sama sekali
         reportIds.forEach { if (!result.containsKey(it)) result[it] = 0 }
         return result
     }
@@ -457,18 +427,51 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     private fun insertDefaultHadiah(db: SQLiteDatabase) {
         val hadiahList = listOf(
-            arrayOf("Voucher Mie Aceh Titi Bobrok", "Voucher makan gratis 1 porsi", "300",
-                "voucher", "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=300"),
-            arrayOf("Kopi Kenangan 50% Disc", "Diskon 50% untuk semua menu", "150",
-                "voucher", "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300"),
-            arrayOf("General Checkup RS Siloam", "Paket general checkup lengkap", "2500",
-                "voucher", "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=300"),
-            arrayOf("Pahlawan Lingkungan Medan", "Badge eksklusif pecinta lingkungan", "500",
-                "badge", "https://images.unsplash.com/photo-1719463814255-a7ee39b3630a?w=300"),
-            arrayOf("Staycation 1 Malam JW Marriott", "Promo terbatas menginap 1 malam", "5000",
-                "promo", "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300"),
-            arrayOf("Voucher GrabFood 50rb", "Voucher diskon GrabFood", "400",
-                "voucher", "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300")
+            // ── Kuliner lokal Medan ──────────────────────────────────────
+            // Nasi gurih / nasi uduk putih dengan lauk komplit
+            arrayOf("Voucher Makan Nasi Gurih Bu Rohani",
+                "Gratis 1 porsi nasi gurih komplit khas Medan", "150",
+                "voucher", "https://images.unsplash.com/photo-1567521464027-f127ff144326?w=300"),
+            // Semangkuk soto / sup dengan udang
+            arrayOf("Voucher Soto Udang Bang Togar",
+                "1 mangkok soto udang + es teh manis", "120",
+                "voucher", "https://images.unsplash.com/photo-1547592180-85f173990554?w=300"),
+            // Kue-kue tradisional / jajanan pasar warna-warni
+            arrayOf("Kue Tradisional Dapur Kak Minar",
+                "1 kotak assorted kue tradisional Melayu Deli", "200",
+                "voucher", "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300"),
+            // Es / minuman dingin berwarna dengan buah
+            arrayOf("Voucher Es Tebak Uda Roni",
+                "3 cup es tebak durian asli Medan", "100",
+                "voucher", "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=300"),
+
+            // ── Kerajinan tangan / souvenir ──────────────────────────────
+            // Tas rajut / anyam warna-warni handmade
+            arrayOf("Tas Anyam Rajutan Ibu Santi",
+                "Tas belanja rajut handmade motif ulos mini", "350",
+                "souvenir", "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=300"),
+            // Kerajinan kayu / miniatur ukiran
+            arrayOf("Miniatur Istana Maimun Pak Syarif",
+                "Miniatur kayu Istana Maimun ukiran tangan", "400",
+                "souvenir", "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=300"),
+            // Gelang manik warna-warni etnik
+            arrayOf("Gelang Manik Etnik Kak Dewi",
+                "Gelang manik tangan motif Batak dan Melayu", "180",
+                "souvenir", "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300"),
+
+            // ── Produk pertanian / herbal lokal ──────────────────────────
+            // Toples / botol madu kuning bersih
+            arrayOf("Madu Hutan Tualang Pak Harun",
+                "250ml madu hutan asli Sumatera Utara", "300",
+                "herbal", "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=300"),
+            // Rempah-rempah kering berwarna: kunyit, cabai, ketumbar
+            arrayOf("Rempah Siap Masak Dapur Bunda",
+                "Paket 5 bumbu rempah segar khas Medan", "250",
+                "herbal", "https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=300"),
+            // Cangkir teh herbal dengan sereh dan jahe segar
+            arrayOf("Teh Herbal Sereh Jahe Kak Rina",
+                "10 sachet teh herbal sereh-jahe organik lokal", "200",
+                "herbal", "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=300"),
         )
         hadiahList.forEach {
             db.execSQL("""
@@ -503,8 +506,13 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     fun getHadiahRekomendasi(): List<Map<String, String>> {
         val db = readableDatabase
-        val cursor = db.query(TABLE_HADIAH, null,
-            "$COL_HAD_KATEGORI = ?", arrayOf("promo"), null, null, null)
+        // Rekomendasi menampilkan produk herbal & souvenir UMKM lokal
+        val cursor = db.rawQuery("""
+            SELECT * FROM $TABLE_HADIAH
+            WHERE $COL_HAD_KATEGORI IN ('herbal','souvenir')
+            ORDER BY $COL_HAD_POIN ASC
+            LIMIT 3
+        """.trimIndent(), null)
         val list = mutableListOf<Map<String, String>>()
         while (cursor.moveToNext()) {
             list.add(mapOf(
@@ -661,14 +669,14 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     private fun insertDefaultMisi(db: SQLiteDatabase) {
         val misiList = listOf(
-            arrayOf("Laporkan Jalan Berlubang",    "Wilayah Medan Baru",   "50",  "🚧", "#E8541A", "laporan"),
-            arrayOf("Laporkan Kemacetan",          "Wilayah Medan Kota",   "40",  "🚥", "#E8541A", "laporan"),
+            arrayOf("Laporkan Jalan Berlubang",    "Wilayah Medan Baru",    "50",  "🚧", "#E8541A", "laporan"),
+            arrayOf("Laporkan Kemacetan",          "Wilayah Medan Kota",    "40",  "🚥", "#E8541A", "laporan"),
             arrayOf("Gunakan Trans Metro",         "Halte Trans Metro Medan","30", "🚌", "#1A6B5A", "transportasi"),
-            arrayOf("Setor Sampah Plastik",        "Bank Sampah Terdekat", "100", "♻️", "#2D8B70", "lingkungan"),
-            arrayOf("Laporkan Drainase Tersumbat", "Wilayah Medan Barat",  "60",  "🌊", "#E8541A", "laporan"),
-            arrayOf("Laporkan TPS Overload",       "TPS Terdekat di Medan","55",  "🗑️", "#E8541A", "laporan"),
-            arrayOf("Laporkan Parkir Liar",        "Wilayah Medan Kota",   "45",  "🚗", "#E8541A", "laporan"),
-            arrayOf("Laporkan Lampu Jalan Mati",   "Wilayah Medan Timur",  "50",  "💡", "#E8541A", "laporan")
+            arrayOf("Setor Sampah Plastik",        "Bank Sampah Terdekat",  "100", "♻️", "#2D8B70", "lingkungan"),
+            arrayOf("Laporkan Drainase Tersumbat", "Wilayah Medan Barat",   "60",  "🌊", "#E8541A", "laporan"),
+            arrayOf("Laporkan TPS Overload",       "TPS Terdekat di Medan", "55",  "🗑️", "#E8541A", "laporan"),
+            arrayOf("Laporkan Parkir Liar",        "Wilayah Medan Kota",    "45",  "🚗", "#E8541A", "laporan"),
+            arrayOf("Laporkan Lampu Jalan Mati",   "Wilayah Medan Timur",   "50",  "💡", "#E8541A", "laporan")
         )
         misiList.forEach {
             db.execSQL("""
