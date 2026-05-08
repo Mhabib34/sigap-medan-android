@@ -26,6 +26,7 @@
         <activity
             android:name=".activity.LaporanJalanActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Smart_city.NoActionBar"/>
 
         <activity
@@ -42,11 +43,6 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Smart_city.NoActionBar" />
-
-        <activity
-            android:name=".activity.LocationPickerActivity"
-            android:theme="@style/Theme.Smart_city.NoActionBar"
-            android:screenOrientation="portrait" />
         <activity
             android:name=".activity.SplashActivity"
             android:exported="true"

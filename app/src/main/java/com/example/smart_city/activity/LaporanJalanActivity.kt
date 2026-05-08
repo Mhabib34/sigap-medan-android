@@ -13,6 +13,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
+import androidx.core.view.WindowCompat
 import com.example.smart_city.R
 import com.example.smart_city.helper.DatabaseHelper
 import com.example.smart_city.helper.ToastHelper
@@ -50,6 +51,7 @@ class LaporanJalanActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         supportActionBar?.hide()
         setContentView(R.layout.activity_laporan_jalan)
 
