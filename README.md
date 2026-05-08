@@ -245,9 +245,9 @@ Black Box Testing was also performed on **14 functional scenarios** including au
 | Role | Name |
 |------|------|
 | 👑 Team Lead | Muhammad Habib |
-| 👨‍💻 Member | Ahmad Fauzi |
+| 👨‍💻 Member | Nanda Rizki Pratama Nasution |
 | 👨‍💻 Member | Muhammad Fahmi Syah Putra |
-| 👨‍💻 Member | Nanda Rizki |
+| 👨‍💻 Member | Ahmad Fauzi |
 
 ---
 
